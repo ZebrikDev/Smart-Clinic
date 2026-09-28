@@ -63,6 +63,7 @@ class Doctor(Person):
 
 class Appointment:
     VALID_STATUSES = {"scheduled", "cancelled", "in_progress", "completed"}
+    ACTIVE_STATUSES = {"scheduled", "in_progress"}
 
     def __init__(
         self,
@@ -86,6 +87,10 @@ class Appointment:
         self.doctor = doctor
         self.scheduled_at = scheduled_at
         self.update_status(status)
+
+    @property
+    def is_active(self) -> bool:
+        return self.status in self.ACTIVE_STATUSES
 
     def update_status(self, status: str) -> None:
         if not isinstance(status, str) or status not in self.VALID_STATUSES:
@@ -159,14 +164,33 @@ class ClinicManager:
     def find_doctor(self, doctor_id: str) -> Doctor | None:
         return self.doctors.get(doctor_id)
 
-    def register_appointment(self, appointment: Appointment) -> None:
+    def has_doctor_conflict(self, doctor: Doctor, scheduled_at: datetime) -> bool:
+        for existing in self.appointments.values():
+            if (
+                existing.doctor.id == doctor.id
+                and existing.scheduled_at == scheduled_at
+                and existing.is_active
+            ):
+                return True
+        return False
+
+    def schedule_appointment(self, appointment: Appointment) -> None:
         if not isinstance(appointment, Appointment):
             raise TypeError("appointment must be an Appointment instance.")
         if appointment.appointment_id in self.appointments:
             raise ValueError(
                 f"Appointment with ID {appointment.appointment_id} already exists."
             )
+        if appointment.is_active and self.has_doctor_conflict(
+            appointment.doctor, appointment.scheduled_at
+        ):
+            raise ValueError(
+                f"Doctor {appointment.doctor.id} already has an active appointment at {appointment.scheduled_at}."
+            )
         self.appointments[appointment.appointment_id] = appointment
+
+    def register_appointment(self, appointment: Appointment) -> None:
+        self.schedule_appointment(appointment)
 
     def find_appointment(self, appointment_id: str) -> Appointment | None:
         return self.appointments.get(appointment_id)
