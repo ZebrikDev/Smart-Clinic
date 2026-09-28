@@ -3,20 +3,12 @@ from datetime import datetime
 
 class Person:
     def __init__(self, id: str, name: str):
-        self._validate_id(id)
-        self._validate_name(name)
-        self.id = id.strip()
-        self.name = name.strip()
-
-    @staticmethod
-    def _validate_id(id: str) -> None:
         if not isinstance(id, str) or not id.strip():
             raise ValueError("ID must be a non-empty string.")
-
-    @staticmethod
-    def _validate_name(name: str) -> None:
         if not isinstance(name, str) or not name.strip():
             raise ValueError("Name must be a non-empty string.")
+        self.id = id.strip()
+        self.name = name.strip()
 
     def get_details(self) -> str:
         return f"Person: {self.name} (ID: {self.id})"
@@ -25,7 +17,7 @@ class Person:
         return f"{self.name} ({self.id})"
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(id={self.id!r}, name={self.name!r})"
+        return f"Person(id={self.id!r}, name={self.name!r})"
 
 
 class Patient(Person):
@@ -36,7 +28,7 @@ class Patient(Person):
         return f"Patient: {self.name} (ID: {self.id})"
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Patient":
+    def from_dict(cls, data: dict):
         return cls(id=data["id"], name=data["name"])
 
     def __repr__(self) -> str:
@@ -54,7 +46,7 @@ class Doctor(Person):
         return f"Doctor: {self.name} (ID: {self.id}, Specialty: {self.specialty})"
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Doctor":
+    def from_dict(cls, data: dict):
         return cls(id=data["id"], name=data["name"], specialty=data["specialty"])
 
     def __repr__(self) -> str:
@@ -93,7 +85,7 @@ class Appointment:
         return self.status in self.ACTIVE_STATUSES
 
     def update_status(self, status: str) -> None:
-        if not isinstance(status, str) or status not in self.VALID_STATUSES:
+        if status not in self.VALID_STATUSES:
             raise ValueError(f"status must be one of {self.VALID_STATUSES}.")
         self.status = status
 
@@ -139,10 +131,10 @@ class Visit:
 
 class ClinicManager:
     def __init__(self):
-        self.patients: dict[str, Patient] = {}
-        self.doctors: dict[str, Doctor] = {}
-        self.appointments: dict[str, Appointment] = {}
-        self.visits: dict[str, Visit] = {}
+        self.patients = {}
+        self.doctors = {}
+        self.appointments = {}
+        self.visits = {}
 
     def register_patient(self, patient: Patient) -> None:
         if not isinstance(patient, Patient):
@@ -151,7 +143,7 @@ class ClinicManager:
             raise ValueError(f"Patient with ID {patient.id} already exists.")
         self.patients[patient.id] = patient
 
-    def find_patient(self, patient_id: str) -> Patient | None:
+    def find_patient(self, patient_id: str):
         return self.patients.get(patient_id)
 
     def register_doctor(self, doctor: Doctor) -> None:
@@ -161,7 +153,7 @@ class ClinicManager:
             raise ValueError(f"Doctor with ID {doctor.id} already exists.")
         self.doctors[doctor.id] = doctor
 
-    def find_doctor(self, doctor_id: str) -> Doctor | None:
+    def find_doctor(self, doctor_id: str):
         return self.doctors.get(doctor_id)
 
     def has_doctor_conflict(self, doctor: Doctor, scheduled_at: datetime) -> bool:
@@ -192,7 +184,7 @@ class ClinicManager:
     def register_appointment(self, appointment: Appointment) -> None:
         self.schedule_appointment(appointment)
 
-    def find_appointment(self, appointment_id: str) -> Appointment | None:
+    def find_appointment(self, appointment_id: str):
         return self.appointments.get(appointment_id)
 
     def register_visit(self, visit: Visit) -> None:
@@ -202,7 +194,7 @@ class ClinicManager:
             raise ValueError(f"Visit with ID {visit.visit_id} already exists.")
         self.visits[visit.visit_id] = visit
 
-    def find_visit(self, visit_id: str) -> Visit | None:
+    def find_visit(self, visit_id: str):
         return self.visits.get(visit_id)
 
     def __repr__(self) -> str:

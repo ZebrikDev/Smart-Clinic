@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from pathlib import Path
 
 from smart_clinic.models import (
     Appointment,
@@ -11,35 +10,36 @@ from smart_clinic.models import (
 )
 
 
-def _load_patient(record: dict, manager: ClinicManager, line_num: int) -> None:
-    if "id" not in record or "name" not in record:
-        raise ValueError(
-            f"Line {line_num}: Patient record missing required fields ('id', 'name')."
-        )
+def _load_patient(record: dict, manager: ClinicManager, line_num: int):
+    for field in ("id", "name"):
+        if field not in record:
+            raise ValueError(
+                f"Line {line_num}: Patient record missing required fields ('id', 'name')."
+            )
     try:
         patient = Patient.from_dict(record)
     except (ValueError, TypeError) as exc:
-        raise ValueError(f"Line {line_num}: Invalid patient record: {exc}") from exc
+        raise ValueError(f"Line {line_num}: Invalid patient record: {exc}")
     manager.register_patient(patient)
 
 
-def _load_doctor(record: dict, manager: ClinicManager, line_num: int) -> None:
-    if "id" not in record or "name" not in record or "specialty" not in record:
-        raise ValueError(
-            f"Line {line_num}: Doctor record missing required fields ('id', 'name', 'specialty')."
-        )
+def _load_doctor(record: dict, manager: ClinicManager, line_num: int):
+    for field in ("id", "name", "specialty"):
+        if field not in record:
+            raise ValueError(
+                f"Line {line_num}: Doctor record missing required fields ('id', 'name', 'specialty')."
+            )
     try:
         doctor = Doctor.from_dict(record)
     except (ValueError, TypeError) as exc:
-        raise ValueError(f"Line {line_num}: Invalid doctor record: {exc}") from exc
+        raise ValueError(f"Line {line_num}: Invalid doctor record: {exc}")
     manager.register_doctor(doctor)
 
 
-def _load_appointment(record: dict, manager: ClinicManager, line_num: int) -> None:
-    required = {"appointment_id", "patient_id", "doctor_id", "scheduled_at", "status"}
-    if not required.issubset(record.keys()):
-        missing = required - set(record.keys())
-        raise ValueError(f"Line {line_num}: Appointment record missing fields: {missing}.")
+def _load_appointment(record: dict, manager: ClinicManager, line_num: int):
+    for field in ("appointment_id", "patient_id", "doctor_id", "scheduled_at", "status"):
+        if field not in record:
+            raise ValueError(f"Line {line_num}: Missing appointment field '{field}'.")
 
     patient = manager.find_patient(record["patient_id"])
     if patient is None:
@@ -58,7 +58,7 @@ def _load_appointment(record: dict, manager: ClinicManager, line_num: int) -> No
     except (ValueError, TypeError) as exc:
         raise ValueError(
             f"Line {line_num}: Invalid scheduled_at datetime '{record['scheduled_at']}': {exc}"
-        ) from exc
+        )
 
     try:
         appointment = Appointment(
@@ -69,16 +69,15 @@ def _load_appointment(record: dict, manager: ClinicManager, line_num: int) -> No
             status=record["status"],
         )
     except (ValueError, TypeError) as exc:
-        raise ValueError(f"Line {line_num}: Invalid appointment record: {exc}") from exc
+        raise ValueError(f"Line {line_num}: Invalid appointment record: {exc}")
 
     manager.schedule_appointment(appointment)
 
 
-def _load_visit(record: dict, manager: ClinicManager, line_num: int) -> None:
-    required = {"visit_id", "appointment_id", "summary"}
-    if not required.issubset(record.keys()):
-        missing = required - set(record.keys())
-        raise ValueError(f"Line {line_num}: Visit record missing fields: {missing}.")
+def _load_visit(record: dict, manager: ClinicManager, line_num: int):
+    for field in ("visit_id", "appointment_id", "summary"):
+        if field not in record:
+            raise ValueError(f"Line {line_num}: Missing visit field '{field}'.")
 
     appointment = manager.find_appointment(record["appointment_id"])
     if appointment is None:
@@ -93,16 +92,15 @@ def _load_visit(record: dict, manager: ClinicManager, line_num: int) -> None:
             summary=record["summary"],
         )
     except (ValueError, TypeError) as exc:
-        raise ValueError(f"Line {line_num}: Invalid visit record: {exc}") from exc
+        raise ValueError(f"Line {line_num}: Invalid visit record: {exc}")
 
     manager.register_visit(visit)
 
 
-def load_clinic_data(file_path: str | Path) -> ClinicManager:
+def load_clinic_data(file_path) -> ClinicManager:
     manager = ClinicManager()
-    path = Path(file_path)
 
-    with open(path, "r", encoding="utf-8") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         for line_num, line in enumerate(file, start=1):
             stripped = line.strip()
             if not stripped:
@@ -111,7 +109,7 @@ def load_clinic_data(file_path: str | Path) -> ClinicManager:
             try:
                 record = json.loads(stripped)
             except json.JSONDecodeError as exc:
-                raise ValueError(f"Line {line_num}: Malformed JSON: {exc}") from exc
+                raise ValueError(f"Line {line_num}: Malformed JSON: {exc}")
 
             if not isinstance(record, dict):
                 raise ValueError(f"Line {line_num}: Expected a JSON object.")
