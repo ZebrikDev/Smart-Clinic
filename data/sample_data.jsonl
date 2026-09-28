@@ -1,0 +1,19 @@
+{"record_type": "patient", "id": "P001", "name": "Sarah Connor"}
+{"record_type": "patient", "id": "P002", "name": "Bruce Wayne"}
+{"record_type": "patient", "id": "P003", "name": "Clark Kent"}
+{"record_type": "patient", "id": "P004", "name": "Diana Prince"}
+{"record_type": "patient", "id": "P005", "name": "Peter Parker"}
+{"record_type": "doctor", "id": "D001", "name": "Alice Walker", "specialty": "Cardiology"}
+{"record_type": "doctor", "id": "D002", "name": "Gregory House", "specialty": "Diagnostics"}
+{"record_type": "doctor", "id": "D003", "name": "Meredith Grey", "specialty": "Surgery"}
+{"record_type": "doctor", "id": "D004", "name": "Leonard McCoy", "specialty": "General Medicine"}
+{"record_type": "appointment", "appointment_id": "A001", "patient_id": "P001", "doctor_id": "D001", "scheduled_at": "2026-10-05T09:00:00", "status": "completed"}
+{"record_type": "appointment", "appointment_id": "A002", "patient_id": "P002", "doctor_id": "D002", "scheduled_at": "2026-10-05T09:30:00", "status": "completed"}
+{"record_type": "appointment", "appointment_id": "A003", "patient_id": "P003", "doctor_id": "D003", "scheduled_at": "2026-10-05T10:00:00", "status": "completed"}
+{"record_type": "appointment", "appointment_id": "A004", "patient_id": "P004", "doctor_id": "D004", "scheduled_at": "2026-10-05T10:30:00", "status": "in_progress"}
+{"record_type": "appointment", "appointment_id": "A005", "patient_id": "P005", "doctor_id": "D001", "scheduled_at": "2026-10-05T11:00:00", "status": "scheduled"}
+{"record_type": "appointment", "appointment_id": "A006", "patient_id": "P001", "doctor_id": "D002", "scheduled_at": "2026-10-05T11:30:00", "status": "cancelled"}
+{"record_type": "appointment", "appointment_id": "A007", "patient_id": "P002", "doctor_id": "D001", "scheduled_at": "2026-10-05T12:00:00", "status": "scheduled"}
+{"record_type": "visit", "visit_id": "V001", "appointment_id": "A001", "summary": "Regular cardiovascular examination normal."}
+{"record_type": "visit", "visit_id": "V002", "appointment_id": "A002", "summary": "Diagnostic evaluation completed with follow-up advised."}
+{"record_type": "visit", "visit_id": "V003", "appointment_id": "A003", "summary": "Post-surgery checkup completed without complications."}
