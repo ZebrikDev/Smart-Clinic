@@ -192,6 +192,11 @@ class ClinicManager:
             raise TypeError("visit must be a Visit instance.")
         if visit.visit_id in self.visits:
             raise ValueError(f"Visit with ID {visit.visit_id} already exists.")
+        for existing in self.visits.values():
+            if existing.appointment.appointment_id == visit.appointment.appointment_id:
+                raise ValueError(
+                    f"Appointment {visit.appointment.appointment_id} already has a visit."
+                )
         self.visits[visit.visit_id] = visit
 
     def find_visit(self, visit_id: str):
