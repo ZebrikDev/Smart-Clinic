@@ -126,7 +126,7 @@ Each line of `data/sample_data.jsonl` is one JSON object with a `record_type` fi
 | `appointment` | `appointment_id`, `patient_id`, `doctor_id`, `scheduled_at`, `status` |
 | `visit` | `visit_id`, `appointment_id`, `summary` |
 
-All data is synthetic.
+All data is synthetic. The records were generated with ChatGPT, and how the file was checked is described in `AI_USAGE.md`.
 
 `load_clinic_data` in `repository.py` opens the file with `with open(..., encoding="utf-8")` and reads it line by line. It does not use `read()` or `readlines()`. Each line goes through `json.loads` to become a `dict`, and then the dict is converted to an object (`from_dict` for patients and doctors, and the constructors for appointments and visits). The loader stops with a `ValueError` that includes the line number when it finds:
 - malformed JSON or a line that is not a JSON object
