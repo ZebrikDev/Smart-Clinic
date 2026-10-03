@@ -123,10 +123,14 @@ def show_data_structures(manager, appointments):
 
 def show_waiting_queue(appointments):
     print_title("7. deque: regular requests in FIFO order")
-    waiting = deque(a for a in appointments if a.status == "scheduled")
+    waiting = deque()
+    for appointment in appointments:
+        if appointment.status == "scheduled":
+            waiting.append(appointment)
     print(f"Arrival order: {join_ids(waiting)}")
     handled = processing.process_waiting_queue(waiting)
     print(f"Handled order: {join_ids(handled)}")
+    print(f"Empty queue handled safely: {processing.process_waiting_queue(waiting)}")
 
 
 def show_priority_queue(manager):
