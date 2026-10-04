@@ -24,5 +24,5 @@ class AppointmentProcessing:
         if exc_type is None:
             self.appointment.update_status("completed")
         else:
-            self.appointment.update_status(self.previous_status)
+            self.appointment.status = self.previous_status
         return False
