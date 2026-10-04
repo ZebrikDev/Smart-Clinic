@@ -201,7 +201,10 @@ def show_generator(appointments):
     print(f"next(): {next(history)}")
     for appointment in history:
         print(f"for loop continues: {appointment}")
-    print(f"Exhausted, nothing left: {list(history)}")
+    try:
+        next(history)
+    except StopIteration:
+        print("Generator is exhausted")
 
     history = completed_appointments_for_patient(appointments, "P002")
     print(f"New generator starts over: {next(history)}")
