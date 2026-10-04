@@ -1,6 +1,5 @@
+#### Iterator over a sequence of appointments.
 class AppointmentIterator:
-    """Iterator over a sequence of appointments."""
-
     def __init__(self, appointments: list):
         self.appointments = appointments
         self.index = 0
@@ -16,9 +15,8 @@ class AppointmentIterator:
         return appointment
 
 
+#### Iterable collection of appointments.
 class AppointmentCollection:
-    """Iterable collection of appointments."""
-
     def __init__(self, appointments: list):
         self.appointments = appointments
 
@@ -26,16 +24,29 @@ class AppointmentCollection:
         return AppointmentIterator(self.appointments)
 
 
+#### Completed appointments for one patient.
 def completed_appointments_for_patient(appointments, patient_id: str):
-    """Yield completed appointments for one patient."""
     for appointment in appointments:
         if appointment.patient.id == patient_id and appointment.status == "completed":
             yield appointment
 
 
+#### Three-stage lazy pipeline for active appointments.
 def appointment_label_pipeline(appointments):
-    """Return labels for active appointments."""
-    active = (a for a in appointments if a.is_active)
-    pairs = ((a.patient.name, a.doctor.name) for a in active)
-    labels = (f"{patient} -> {doctor}" for patient, doctor in pairs)
+    active_appointments = (
+        appointment
+        for appointment in appointments
+        if appointment.is_active
+    )
+
+    patient_doctor_pairs = (
+        (appointment.patient.name, appointment.doctor.name)
+        for appointment in active_appointments
+    )
+
+    labels = (
+        f"{patient_name} -> {doctor_name}"
+        for patient_name, doctor_name in patient_doctor_pairs
+    )
+
     return labels
