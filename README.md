@@ -79,6 +79,7 @@ python3 main.py
 **Design decisions.**
 - A doctor cannot have two active appointments at exactly the same time. Active means `scheduled` or `in_progress`.
 - Cancelling an appointment frees its time slot.
+- Cancelled and completed appointments cannot become active again.
 - A `Visit` can only be created for a completed appointment, and each appointment can have only one visit.
 - Adding an ID that already exists raises `ValueError` and does not overwrite the old object.
 

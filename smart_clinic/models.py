@@ -78,6 +78,7 @@ class Appointment:
         self.patient = patient
         self.doctor = doctor
         self.scheduled_at = scheduled_at
+        self.status = None
         self.update_status(status)
 
     @property
@@ -87,6 +88,8 @@ class Appointment:
     def update_status(self, status: str) -> None:
         if status not in self.VALID_STATUSES:
             raise ValueError(f"status must be one of {self.VALID_STATUSES}.")
+        if self.status in {"cancelled", "completed"} and status in self.ACTIVE_STATUSES:
+            raise ValueError(f"Cannot reactivate a {self.status} appointment.")
         self.status = status
 
     def __str__(self) -> str:
