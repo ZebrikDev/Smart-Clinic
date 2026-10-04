@@ -18,9 +18,9 @@ def _load_patient(record: dict, manager: ClinicManager, line_num: int):
             )
     try:
         patient = Patient.from_dict(record)
+        manager.register_patient(patient)
     except (ValueError, TypeError) as exc:
         raise ValueError(f"Line {line_num}: Invalid patient record: {exc}")
-    manager.register_patient(patient)
 
 
 def _load_doctor(record: dict, manager: ClinicManager, line_num: int):
@@ -31,9 +31,9 @@ def _load_doctor(record: dict, manager: ClinicManager, line_num: int):
             )
     try:
         doctor = Doctor.from_dict(record)
+        manager.register_doctor(doctor)
     except (ValueError, TypeError) as exc:
         raise ValueError(f"Line {line_num}: Invalid doctor record: {exc}")
-    manager.register_doctor(doctor)
 
 
 def _load_appointment(record: dict, manager: ClinicManager, line_num: int):
@@ -41,13 +41,21 @@ def _load_appointment(record: dict, manager: ClinicManager, line_num: int):
         if field not in record:
             raise ValueError(f"Line {line_num}: Missing appointment field '{field}'.")
 
-    patient = manager.find_patient(record["patient_id"])
+    patient_id = record["patient_id"]
+    if not isinstance(patient_id, str) or not patient_id.strip():
+        raise ValueError(f"Line {line_num}: patient_id must be a non-empty string.")
+
+    patient = manager.find_patient(patient_id)
     if patient is None:
         raise ValueError(
             f"Line {line_num}: Unknown patient '{record['patient_id']}' for appointment '{record['appointment_id']}'."
         )
 
-    doctor = manager.find_doctor(record["doctor_id"])
+    doctor_id = record["doctor_id"]
+    if not isinstance(doctor_id, str) or not doctor_id.strip():
+        raise ValueError(f"Line {line_num}: doctor_id must be a non-empty string.")
+
+    doctor = manager.find_doctor(doctor_id)
     if doctor is None:
         raise ValueError(
             f"Line {line_num}: Unknown doctor '{record['doctor_id']}' for appointment '{record['appointment_id']}'."
@@ -68,10 +76,9 @@ def _load_appointment(record: dict, manager: ClinicManager, line_num: int):
             scheduled_at=scheduled_at,
             status=record["status"],
         )
+        manager.schedule_appointment(appointment)
     except (ValueError, TypeError) as exc:
         raise ValueError(f"Line {line_num}: Invalid appointment record: {exc}")
-
-    manager.schedule_appointment(appointment)
 
 
 def _load_visit(record: dict, manager: ClinicManager, line_num: int):
@@ -79,7 +86,11 @@ def _load_visit(record: dict, manager: ClinicManager, line_num: int):
         if field not in record:
             raise ValueError(f"Line {line_num}: Missing visit field '{field}'.")
 
-    appointment = manager.find_appointment(record["appointment_id"])
+    appointment_id = record["appointment_id"]
+    if not isinstance(appointment_id, str) or not appointment_id.strip():
+        raise ValueError(f"Line {line_num}: appointment_id must be a non-empty string.")
+
+    appointment = manager.find_appointment(appointment_id)
     if appointment is None:
         raise ValueError(
             f"Line {line_num}: Unknown appointment '{record['appointment_id']}' for visit '{record['visit_id']}'."
@@ -91,10 +102,9 @@ def _load_visit(record: dict, manager: ClinicManager, line_num: int):
             appointment=appointment,
             summary=record["summary"],
         )
+        manager.register_visit(visit)
     except (ValueError, TypeError) as exc:
         raise ValueError(f"Line {line_num}: Invalid visit record: {exc}")
-
-    manager.register_visit(visit)
 
 
 def load_clinic_data(file_path) -> ClinicManager:
