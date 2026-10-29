@@ -143,3 +143,42 @@ Tool: Codex, used by Shon as an implementation assistant on 2026-10-29.
 - No Google client, Factory, selection strategy, booking service, waiting-list
   behavior or concurrency was implemented. The M3 TDD opportunity remains open.
   No commits, push or merge were performed for M2.
+
+## 6. Stage 2: authorized M3 Strategy and TDD
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
+
+- Shon reported Technical Lead approval of M2 and explicitly authorized local
+  commits for the reviewed baseline and genuine M3 Red/Green/Refactor stages.
+  No push, merge, rebase, amend or history rewriting was authorized or performed.
+- Codex reproduced the reviewed M2 files from the saved artifacts before staging.
+  All 25 project files matched, with no unexpected changes. The 242 existing
+  cases passed. Only reviewed project sources, synthetic data, tests and
+  documentation were included; virtual environments, backups and review artifacts
+  remained outside Git.
+- The reviewed M1-M2 baseline was committed locally as
+  `550ab9316e6a94859ba7a4d7032a8d2750e89b0d`
+  (Preserve reviewed Smart Clinic M1 and M2).
+- Codex added the shared SlotSelectionStrategy contract and both alternatives.
+  Tests for closest-slot behavior were written before its implementation. The
+  initial method raised NotImplementedError; the actual run had 11 failures and
+  8 passes, without import/environment failures. That state and the captured
+  output in docs/tdd/m3-red.txt were committed as
+  `679aafd6e4430c55b12490f0e9dbb6685687b586`
+  (test: record Red for closest slot selection).
+- Green implemented distance/start ranking with an explicit loop, and all 261
+  cases passed. The local commit is
+  `60d2d3c02a3136612ef1d58f0e401bbd5506eddb`
+  (feat: implement closest slot selection (Green)).
+- Refactor replaced the manual best-slot/key bookkeeping with min and an explicit
+  ranking key, preserving tests and behavior. All 261 cases remained green.
+  The local commit is `5e8ba6d8e8b71ca68cb1a4db0fd504b31fb78608`
+  (refactor: express closest selection with a ranking key).
+- The 19 new cases cover both strategies, empty and unsorted input, exact
+  preferences, equal-distance ties and unchanged slots/clinic state. Existing
+  M1-M2 implementation and tests were preserved. The final checks also ran the
+  original demo and git diff --check, using Python 3.14.0 and pytest 9.2.0;
+  Python 3.11 syntax was checked separately.
+- README/AI_USAGE record the completed TDD hashes in a later documentation
+  commit so no circular or self-referential hash is required. No Google client,
+  Factory, booking service, waiting list or concurrency was implemented in M3.

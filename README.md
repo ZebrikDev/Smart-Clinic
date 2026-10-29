@@ -187,7 +187,9 @@ M1 extends the local model with appointment durations, a computed end time,
 the terminal `no_show` status, and a 15-minute minimum gap for both doctors
 and patients. M2 adds pure slot generation and availability filtering using a
 complete synthetic calendar snapshot, explicit doctor working hours and current
-local appointments. The Google client, selection strategies, booking service,
+local appointments. M3 adds two selection strategies for those already-valid
+slots: earliest start or closest start to a preference, with an earlier start
+breaking equal-distance ties. The Google client, Factory, booking service,
 waiting-list backfill and concurrency remain pending.
 
 ### How to run
@@ -205,8 +207,8 @@ python3 -m venv .venv
 ```
 
 The `test` extra in `pyproject.toml` declares the same pytest requirement.
-There is no live-service command at M2; the explicit live entry point will be
-added in its authorized milestone. `python-dotenv` is not needed at M2.
+There is no live-service command at M3; the explicit live entry point will be
+added in its authorized milestone. `python-dotenv` is not needed at M3.
 
 The original `main.py` demonstration is preserved. To inspect M2 availability
 directly, run this separate offline calculation from the project root:
@@ -227,7 +229,7 @@ print(slots)
 
 ### Code organization
 
-The Stage 1 modules listed above remain in place. M1/M2 add or extend:
+The Stage 1 modules listed above remain in place. M1-M3 add or extend:
 
 | File | Responsibility |
 |---|---|
@@ -235,6 +237,7 @@ The Stage 1 modules listed above remain in place. M1/M2 add or extend:
 | `smart_clinic/scheduling.py` | Shared interval-gap rule, candidate generation, padded bounds and read-only availability |
 | `smart_clinic/api_client.py` | CalendarClient contract, CalendarSnapshot, shared event normalization and JsonCalendarClient |
 | `smart_clinic/time_utils.py` | Standard-library boundary between external timestamps and clinic-local time |
+| `smart_clinic/strategies.py` | Shared selection contract, earliest and closest alternatives |
 | `data/calendar_responses.json` | Complete synthetic Google-shaped calendars for three independent doctors |
 | `smart_clinic/repository.py` | Optional JSONL `duration_minutes` with validation through the model |
 | `tests/test_lecturer_feedback.py` | Preserved 19 regression checks, extended for `no_show` |
@@ -245,6 +248,8 @@ The Stage 1 modules listed above remain in place. M1/M2 add or extend:
 | `tests/test_availability.py` | Candidate grid, business boundaries, local conflicts and coverage |
 | `tests/test_api_client.py` | Snapshot validation, file reading and event normalization |
 | `tests/test_time_utils.py` | Offset conversion, all-day dates and date-specific query offsets |
+| `tests/test_strategies.py` | Selection, ties, empty/unsorted input and unchanged input/clinic state |
+| `docs/tdd/m3-red.txt` | Actual failure output captured before closest-slot behavior was implemented |
 
 ### Main design decisions
 
@@ -305,8 +310,17 @@ The Stage 1 modules listed above remain in place. M1/M2 add or extend:
   The [Google Event contract](https://developers.google.com/workspace/calendar/api/v3/reference/events)
   defines these fields; the [events.list contract](https://developers.google.com/workspace/calendar/api/v3/reference/events/list)
   defines exclusive time bounds and pagination. No requests are sent in M2.
-- The live calendar connection, Factory, both selection strategies, booking
-  service and concurrency are still pending. The M3 TDD behavior is untouched.
+- `SlotSelectionStrategy.select(slots, preferred_start)` returns one of the
+  supplied valid slots, or None for empty input. EarliestAvailableStrategy uses
+  the earliest start and ignores the preference. ClosestToRequestedStrategy uses
+  `(absolute distance from preferred_start, start)` so equal distances choose
+  the earlier start. Nonempty closest selection requires a clinic-local naive
+  datetime preference, matching the local slot convention. Neither strategy
+  sorts/mutates the input, checks availability, fetches data or books anything.
+  This is the course-style Strategy pattern with a small shared contract;
+  selection remains separate from availability and later service composition.
+- The live calendar connection, Factory, booking service, waiting-list behavior
+  and concurrency remain pending after M3.
 
 ### Verification evidence
 
@@ -341,5 +355,26 @@ patient and no local appointments:
 Tests also cover events just outside the search window, working-hour boundaries,
 local doctor/patient conflicts, invalid/aware windows, insufficient snapshots,
 malformed files/events, empty calendars, all-day exclusive ends and different
-timezone offsets. These are local/simulated M2 results. Real API evidence, the
-M3 Red/Green/Refactor commit links and concurrency verification remain pending.
+timezone offsets. These are local/simulated M2 results.
+
+At M3 verification on 2026-10-30, Python 3.14.0 with pytest 9.2.0 passed all 261
+cases (242 existing plus 19 strategy cases), with 63 unittest subtests. The
+separate 19-case unittest suite, the 15 original demo sections and
+`git diff --check` passed. All 20 Python files passed Python 3.11 syntax parsing;
+runtime execution was on 3.14.0. No test requires network or an API key.
+
+ClosestToRequestedStrategy was developed through genuine Red/Green/Refactor:
+
+| Stage | Local commit | Evidence |
+|---|---|---|
+| Reviewed M1-M2 baseline | `550ab9316e6a94859ba7a4d7032a8d2750e89b0d` | 242 cases passed before strategy work |
+| Red | `679aafd6e4430c55b12490f0e9dbb6685687b586` | 11 failed, 8 passed in the strategy suite; failure was NotImplementedError in select |
+| Green | `60d2d3c02a3136612ef1d58f0e401bbd5506eddb` | Closest selection implemented; all 261 cases passed |
+| Refactor | `5e8ba6d8e8b71ca68cb1a4db0fd504b31fb78608` | Manual best-slot/key tracking replaced by min with the same ranking tuple; all 261 cases stayed green |
+
+The exact original Red output is preserved in [docs/tdd/m3-red.txt](docs/tdd/m3-red.txt).
+The same strategy tests and expected results were retained through Green and
+Refactor. These are local commits and can be inspected with `git show <hash>`;
+no push or merge was performed. This later documentation records existing
+commit hashes without embedding its own hash. Real API and concurrency evidence
+remain pending their respective milestones.
