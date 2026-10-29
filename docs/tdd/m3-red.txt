@@ -1,0 +1,94 @@
+$ PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/test_strategies.py -p no:cacheprovider -q --tb=short
+.....FFFFFFFF.F.F.F                                                      [100%]
+=================================== FAILURES ===================================
+________________ test_closest_selects_by_preference[before-all] ________________
+tests/test_strategies.py:44: in test_closest_selects_by_preference
+    selected = ClosestToRequestedStrategy().select(slots, preferred)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+_______________ test_closest_selects_by_preference[exact-early] ________________
+tests/test_strategies.py:44: in test_closest_selects_by_preference
+    selected = ClosestToRequestedStrategy().select(slots, preferred)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+______________ test_closest_selects_by_preference[equal-distance] ______________
+tests/test_strategies.py:44: in test_closest_selects_by_preference
+    selected = ClosestToRequestedStrategy().select(slots, preferred)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+______________ test_closest_selects_by_preference[nearest-middle] ______________
+tests/test_strategies.py:44: in test_closest_selects_by_preference
+    selected = ClosestToRequestedStrategy().select(slots, preferred)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+________________ test_closest_selects_by_preference[exact-late] ________________
+tests/test_strategies.py:44: in test_closest_selects_by_preference
+    selected = ClosestToRequestedStrategy().select(slots, preferred)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+________________ test_closest_selects_by_preference[after-all] _________________
+tests/test_strategies.py:44: in test_closest_selects_by_preference
+    selected = ClosestToRequestedStrategy().select(slots, preferred)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+_________ test_closest_tie_chooses_earlier_in_either_input_order[True] _________
+tests/test_strategies.py:53: in test_closest_tie_chooses_earlier_in_either_input_order
+    assert ClosestToRequestedStrategy().select(choices, at(10)) is early
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+________ test_closest_tie_chooses_earlier_in_either_input_order[False] _________
+tests/test_strategies.py:53: in test_closest_tie_chooses_earlier_in_either_input_order
+    assert ClosestToRequestedStrategy().select(choices, at(10)) is early
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+____ test_empty_collection_returns_none[empty0-ClosestToRequestedStrategy] _____
+tests/test_strategies.py:60: in test_empty_collection_returns_none
+    assert strategy_type().select(empty, None) is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+____ test_empty_collection_returns_none[empty1-ClosestToRequestedStrategy] _____
+tests/test_strategies.py:60: in test_empty_collection_returns_none
+    assert strategy_type().select(empty, None) is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+_ test_selection_preserves_valid_slots_and_clinic_state[ClosestToRequestedStrategy-expected_slot1] _
+tests/test_strategies.py:85: in test_selection_preserves_valid_slots_and_clinic_state
+    selected = strategy_type().select(valid_slots, at(11))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+smart_clinic/strategies.py:20: in select
+    raise NotImplementedError("Closest slot selection is not implemented yet.")
+E   NotImplementedError: Closest slot selection is not implemented yet.
+=========================== short test summary info ============================
+FAILED tests/test_strategies.py::test_closest_selects_by_preference[before-all]
+FAILED tests/test_strategies.py::test_closest_selects_by_preference[exact-early]
+FAILED tests/test_strategies.py::test_closest_selects_by_preference[equal-distance]
+FAILED tests/test_strategies.py::test_closest_selects_by_preference[nearest-middle]
+FAILED tests/test_strategies.py::test_closest_selects_by_preference[exact-late]
+FAILED tests/test_strategies.py::test_closest_selects_by_preference[after-all]
+FAILED tests/test_strategies.py::test_closest_tie_chooses_earlier_in_either_input_order[True]
+FAILED tests/test_strategies.py::test_closest_tie_chooses_earlier_in_either_input_order[False]
+FAILED tests/test_strategies.py::test_empty_collection_returns_none[empty0-ClosestToRequestedStrategy]
+FAILED tests/test_strategies.py::test_empty_collection_returns_none[empty1-ClosestToRequestedStrategy]
+FAILED tests/test_strategies.py::test_selection_preserves_valid_slots_and_clinic_state[ClosestToRequestedStrategy-expected_slot1]
+11 failed, 8 passed in 0.03s
+Exit code: 1
