@@ -17,4 +17,11 @@ class EarliestAvailableStrategy(SlotSelectionStrategy):
 
 class ClosestToRequestedStrategy(SlotSelectionStrategy):
     def select(self, slots, preferred_start):
-        raise NotImplementedError("Closest slot selection is not implemented yet.")
+        selected = None
+        selected_key = None
+        for slot in slots:
+            key = (abs(slot[0] - preferred_start), slot[0])
+            if selected_key is None or key < selected_key:
+                selected = slot
+                selected_key = key
+        return selected
