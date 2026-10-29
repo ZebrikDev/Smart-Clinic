@@ -17,11 +17,9 @@ class EarliestAvailableStrategy(SlotSelectionStrategy):
 
 class ClosestToRequestedStrategy(SlotSelectionStrategy):
     def select(self, slots, preferred_start):
-        selected = None
-        selected_key = None
-        for slot in slots:
-            key = (abs(slot[0] - preferred_start), slot[0])
-            if selected_key is None or key < selected_key:
-                selected = slot
-                selected_key = key
-        return selected
+        """Rank by distance, then earlier start, without sorting the input."""
+        return min(
+            slots,
+            key=lambda slot: (abs(slot[0] - preferred_start), slot[0]),
+            default=None,
+        )
