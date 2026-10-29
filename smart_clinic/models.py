@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from smart_clinic.scheduling import intervals_conflict
 
 
 class Person:
@@ -54,8 +56,9 @@ class Doctor(Person):
 
 
 class Appointment:
-    VALID_STATUSES = {"scheduled", "cancelled", "in_progress", "completed"}
+    VALID_STATUSES = {"scheduled", "cancelled", "in_progress", "completed", "no_show"}
     ACTIVE_STATUSES = {"scheduled", "in_progress"}
+    TERMINAL_STATUSES = {"cancelled", "completed", "no_show"}
 
     def __init__(
         self,
@@ -64,6 +67,7 @@ class Appointment:
         doctor: Doctor,
         scheduled_at: datetime,
         status: str = "scheduled",
+        duration_minutes: int = 30,
     ):
         if not isinstance(appointment_id, str) or not appointment_id.strip():
             raise ValueError("Appointment ID must be a non-empty string.")
@@ -73,24 +77,43 @@ class Appointment:
             raise TypeError("doctor must be a Doctor instance.")
         if not isinstance(scheduled_at, datetime):
             raise TypeError("scheduled_at must be a datetime instance.")
+        if (
+            not isinstance(duration_minutes, int)
+            or isinstance(duration_minutes, bool)
+            or duration_minutes <= 0
+        ):
+            raise ValueError("duration_minutes must be a positive integer.")
 
         self.appointment_id = appointment_id.strip()
         self.patient = patient
         self.doctor = doctor
         self.scheduled_at = scheduled_at
-        self.status = None
+        self._duration_minutes = duration_minutes
+        self._status = None
         self.update_status(status)
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    @property
+    def duration_minutes(self) -> int:
+        return self._duration_minutes
+
+    @property
+    def end_at(self) -> datetime:
+        return self.scheduled_at + timedelta(minutes=self.duration_minutes)
 
     @property
     def is_active(self) -> bool:
         return self.status in self.ACTIVE_STATUSES
 
     def update_status(self, status: str) -> None:
-        if status not in self.VALID_STATUSES:
+        if not isinstance(status, str) or status not in self.VALID_STATUSES:
             raise ValueError(f"status must be one of {self.VALID_STATUSES}.")
-        if self.status in {"cancelled", "completed"} and status in self.ACTIVE_STATUSES:
+        if self.status in self.TERMINAL_STATUSES and status in self.ACTIVE_STATUSES:
             raise ValueError(f"Cannot reactivate a {self.status} appointment.")
-        self.status = status
+        self._status = status
 
     def __str__(self) -> str:
         time_str = self.scheduled_at.strftime("%Y-%m-%d %H:%M")
@@ -103,7 +126,8 @@ class Appointment:
         return (
             f"Appointment(appointment_id={self.appointment_id!r}, "
             f"patient={self.patient!r}, doctor={self.doctor!r}, "
-            f"scheduled_at={self.scheduled_at!r}, status={self.status!r})"
+            f"scheduled_at={self.scheduled_at!r}, status={self.status!r}, "
+            f"duration_minutes={self.duration_minutes!r})"
         )
 
 
@@ -159,12 +183,32 @@ class ClinicManager:
     def find_doctor(self, doctor_id: str):
         return self.doctors.get(doctor_id)
 
-    def has_doctor_conflict(self, doctor: Doctor, scheduled_at: datetime) -> bool:
+    def has_doctor_conflict(
+        self, doctor: Doctor, scheduled_at: datetime, duration_minutes: int = 30
+    ) -> bool:
+        end_at = scheduled_at + timedelta(minutes=duration_minutes)
         for existing in self.appointments.values():
             if (
                 existing.doctor.id == doctor.id
-                and existing.scheduled_at == scheduled_at
                 and existing.is_active
+                and intervals_conflict(
+                    scheduled_at, end_at, existing.scheduled_at, existing.end_at
+                )
+            ):
+                return True
+        return False
+
+    def has_patient_conflict(
+        self, patient: Patient, scheduled_at: datetime, duration_minutes: int = 30
+    ) -> bool:
+        end_at = scheduled_at + timedelta(minutes=duration_minutes)
+        for existing in self.appointments.values():
+            if (
+                existing.patient.id == patient.id
+                and existing.is_active
+                and intervals_conflict(
+                    scheduled_at, end_at, existing.scheduled_at, existing.end_at
+                )
             ):
                 return True
         return False
@@ -176,11 +220,23 @@ class ClinicManager:
             raise ValueError(
                 f"Appointment with ID {appointment.appointment_id} already exists."
             )
+        if self.patients.get(appointment.patient.id) is not appointment.patient:
+            raise ValueError("Appointment patient must be registered with this clinic.")
+        if self.doctors.get(appointment.doctor.id) is not appointment.doctor:
+            raise ValueError("Appointment doctor must be registered with this clinic.")
         if appointment.is_active and self.has_doctor_conflict(
-            appointment.doctor, appointment.scheduled_at
+            appointment.doctor, appointment.scheduled_at, appointment.duration_minutes
         ):
             raise ValueError(
-                f"Doctor {appointment.doctor.id} already has an active appointment at {appointment.scheduled_at}."
+                f"Doctor {appointment.doctor.id} already has an active appointment "
+                f"overlapping or less than 15 minutes from {appointment.scheduled_at}."
+            )
+        if appointment.is_active and self.has_patient_conflict(
+            appointment.patient, appointment.scheduled_at, appointment.duration_minutes
+        ):
+            raise ValueError(
+                f"Patient {appointment.patient.id} already has an active appointment "
+                f"overlapping or less than 15 minutes from {appointment.scheduled_at}."
             )
         self.appointments[appointment.appointment_id] = appointment
 

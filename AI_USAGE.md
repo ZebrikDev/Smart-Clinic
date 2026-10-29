@@ -89,3 +89,57 @@ How it was checked:
 - A second visit for an already visited appointment was tried and rejected with a `ValueError`.
 - Each statement in the README was compared with the code and with the output of `main.py`.
 - `git diff` was reviewed before each commit, and the approved Project Proposal in the README was not changed.
+
+## 4. Stage 2: M0 planning and authorized M1 implementation
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-29.
+
+- The actual Stage 2 master prompt supplied the architecture, course sources,
+  business rules and milestone boundaries. This is an actual Stage 2 planning
+  prompt, not a reconstruction of a Stage 1 conversation. It first authorized
+  read-only M0 inspection and planning; M1 was authorized separately after review.
+- Codex backed up the dirty Stage 1 checkout and prepared a separate
+  `stage-2-development` worktree from the main commit verified against GitHub.
+  Lecturer-feedback fixes and the 19 existing tests were transferred. This file
+  used main as its baseline; the older local draft was retained in the backup,
+  and historical attribution differences were not reconciled.
+- For M1, Codex implemented duration validation and end times, `no_show`, a pure
+  gap predicate, local doctor/patient conflict checks and optional JSONL duration
+  loading, and added pytest coverage and test setup documentation.
+- Verification preserved the existing regressions, checked 14/15/16-minute gaps
+  in both directions and both registration paths, tested invalid durations and
+  the unchanged dataset, and ran the existing demonstration. The terminal-status
+  tests were explicitly extended so `no_show` cannot become active again.
+- Shon's two expected external-calendar rejections remain attributed to Shon:
+  with work hours 09:00-12:00 and busy time 10:00-10:30, requests 09:30-10:00 and
+  10:00-10:30 must both be rejected. They are reserved for M2; they were not
+  exercised against an external calendar in M1. The proposed valid boundaries
+  09:15-09:45 and 10:45-11:15 came from the planning agent.
+- No Calendar connection, strategies, waiting-list behavior or concurrency were
+  implemented in M1. No commits, push or merge were performed by Codex in M0/M1.
+
+## 5. Stage 2: authorized M2 implementation
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-29.
+
+- Shon reported Technical Lead approval of M1 and explicitly authorized M2 only.
+  A byte-for-byte snapshot of the reviewed worktree was saved before changes.
+- Codex implemented pure candidate generation and availability filtering,
+  CalendarClient/CalendarSnapshot, JsonCalendarClient, one shared Google-shaped
+  event normalizer and small standard-library datetime/zoneinfo helpers. The
+  calendar fixture contains synthetic events only; the Stage 1 JSONL is unchanged.
+- The implementation reuses the M1 gap predicate. The caller pads the search
+  window once; the client preserves original event endpoints and exact coverage.
+  Timezone helpers convert offsets before removing tzinfo, interpret all-day
+  dates in the calendar timezone and generate date-specific query offsets.
+- Shon's two rejection expectations and the planning agent's two acceptance
+  boundaries are tested with their attribution retained. Additional checks cover
+  working hours, local conflicts, invalid coverage/input and timezone conversion.
+- The existing 115 M1 cases passed before implementation. Final verification
+  passed all 242 cases (127 new M2 cases), 63 unittest subtests, the separate
+  19-case unittest suite, all 15 original demo sections and git diff --check.
+  Execution used Python 3.14.0; 18 Python files also passed Python 3.11 syntax
+  parsing. No network, API keys or real calendar data were used by the tests.
+- No Google client, Factory, selection strategy, booking service, waiting-list
+  behavior or concurrency was implemented. The M3 TDD opportunity remains open.
+  No commits, push or merge were performed for M2.
