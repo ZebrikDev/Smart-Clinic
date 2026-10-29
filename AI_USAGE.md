@@ -182,3 +182,41 @@ Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
 - README/AI_USAGE record the completed TDD hashes in a later documentation
   commit so no circular or self-referential hash is required. No Google client,
   Factory, booking service, waiting list or concurrency was implemented in M3.
+
+## 7. Stage 2: authorized M4 calendar client and Factory
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
+
+- Shon reported M3 approval and authorized M4 only, without an M4 commit. The
+  initial worktree was clean at 72cd2840290c576b5c724ffd71db842f91eda7f1;
+  all 261 existing cases passed before changes. The baseline and TDD history
+  were preserved.
+- Codex implemented GoogleCalendarClient using requests, per-page bounded Retry,
+  complete pagination and sanitized failure categories; added Simple Factory,
+  minimal offline/live configuration, .env.example and an explicit read-only
+  verification command. Default main.py and the original JSONL are unchanged.
+- Current Google documentation and its official client schema were consulted.
+  The shared M2 normalizer stayed strict; a separate Google adapter handles an
+  omitted empty items list only in a recognized envelope. Fractional query
+  bounds are rounded outward because Google ignores query fractions, then
+  results are filtered to exact coverage while preserving original endpoints.
+- requests and python-dotenv were declared in pyproject.toml and installed only
+  in the isolated .venv. No real key or calendar ID was invented. The environment
+  example has an empty key and empty mapping; tests use clearly fake values.
+- Final mocked/local verification passed 349 cases (88 new M4 cases), with 63
+  unittest subtests, the separate 19-case suite, original demo, dependency check
+  and git diff --check. Tests replace HTTP and actual waits, and a socket guard
+  prohibits network access. Fake-key checks cover error text, tracebacks and logs.
+- Runtime verification used Python 3.14.0; 26 files passed Python 3.11 syntax
+  parsing. Real-provider verification remains pending: .env is absent in this
+  worktree and no key/mapping is present in the process environment. The explicit
+  command failed safely before HTTP. Mocked responses are not real API evidence.
+- No credentials, calendars, account permissions or paid services were created
+  or changed. No M5 booking service, waiting list, concurrency or final integrated
+  demo was implemented. No commit, push, merge or history rewriting occurred in M4.
+
+Publication follow-up: after Technical Lead review, Shon authorized a normal
+commit and push of the reviewed M1-M4 history to stage-2-development. The preceding
+no-commit statement records the earlier implementation checkpoint. Implementation
+and mocked verification are complete; real-provider verification remains pending
+configuration. Publication does not prove Google connectivity.

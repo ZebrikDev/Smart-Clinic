@@ -44,12 +44,12 @@ Integration of an automated reminder system (e.g., via an external SMS or EMAIL 
 ## Requirements and How to Run
 
 - Python 3.11 or newer
-- No external packages are needed.
+- Install the declared dependencies in an isolated environment as shown under Stage 2.
 
 From the project root:
 
 ```bash
-python3 main.py
+.venv/bin/python main.py
 ```
 
 `main.py` loads `data/sample_data.jsonl` and prints a short demonstration in 15 numbered sections.
@@ -174,7 +174,7 @@ In section 13 of `main.py` only the first two results are taken.
 Run the lecturer-feedback checks from the project root:
 
 ```bash
-python3 -m unittest discover -s tests -p test_lecturer_feedback.py -v
+.venv/bin/python -m unittest discover -s tests -p test_lecturer_feedback.py -v
 ```
 
 These checks cover status encapsulation, clinic membership, scheduling rules, and context-manager rollback.
@@ -189,26 +189,50 @@ and patients. M2 adds pure slot generation and availability filtering using a
 complete synthetic calendar snapshot, explicit doctor working hours and current
 local appointments. M3 adds two selection strategies for those already-valid
 slots: earliest start or closest start to a preference, with an earlier start
-breaking equal-distance ties. The Google client, Factory, booking service,
-waiting-list backfill and concurrency remain pending.
+breaking equal-distance ties. M4 adds a read-only GoogleCalendarClient, bounded
+Retry, a Simple Factory and explicit live configuration/verification. The booking
+service, waiting-list backfill, concurrency and final integrated demo remain pending.
 
 ### How to run
 
 Python 3.11 or newer is required. The current demonstration has no network,
-API key or environment-variable requirements. Install the test extra's dependency
-inside an isolated virtual environment:
+API key or environment-variable requirements. Install the runtime and test
+dependencies declared in pyproject.toml inside an isolated virtual environment:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install 'pytest>=8,<10'
+.venv/bin/python -m pip install 'requests>=2.32,<3' 'python-dotenv>=1,<2' 'pytest>=8,<10'
 .venv/bin/python main.py
 .venv/bin/python -m pytest -p no:cacheprovider -q
 .venv/bin/python -m unittest discover -s tests -p test_lecturer_feedback.py -v
 ```
 
-The `test` extra in `pyproject.toml` declares the same pytest requirement.
-There is no live-service command at M3; the explicit live entry point will be
-added in its authorized milestone. `python-dotenv` is not needed at M3.
+The `test` extra declares pytest; runtime dependencies are requests and
+python-dotenv. Offline mode does not load .env or require any credentials.
+
+For an explicitly configured, dedicated **public synthetic calendar only**,
+create a local ignored `.env` using the empty placeholders in `.env.example`.
+Set GOOGLE_CALENDAR_API_KEY locally, GOOGLE_CALENDAR_MAPPING to a JSON object
+mapping the existing synthetic doctor ID to its actual dedicated calendar ID,
+and REQUEST_TIMEOUT to a finite positive number (default 10). Do not paste keys
+into chat, log configuration, use a personal calendar, or enable HTTP debug logs
+that could include authenticated URLs. No credentials/calendar are created by
+this code. Environment values take precedence over the explicit project .env;
+dotenv interpolation is disabled. `primary` is not an accepted demo calendar ID.
+
+Minimal explicit read-only verification (edit dates to match the synthetic events):
+
+```bash
+.venv/bin/python -m smart_clinic.verify_calendar --doctor-id D001 \
+  --start 2026-10-29T09:00:00 --end 2026-10-29T12:00:00
+```
+
+The command uses the supplied window as explicit demo working hours, with a free
+verification patient and no local bookings. It prints source, normalized busy
+intervals, blocked candidates and remaining available slots. A synthetic busy
+event at 10:00-10:30 rejects 09:30-10:00 and 10:00-10:30 through the existing pure
+calculation. A configuration/read failure prints a safe message and exits 1.
+This is a verification entry point; the default main.py still runs entirely offline.
 
 The original `main.py` demonstration is preserved. To inspect M2 availability
 directly, run this separate offline calculation from the project root:
@@ -229,13 +253,17 @@ print(slots)
 
 ### Code organization
 
-The Stage 1 modules listed above remain in place. M1-M3 add or extend:
+The Stage 1 modules listed above remain in place. M1-M4 add or extend:
 
 | File | Responsibility |
 |---|---|
 | `smart_clinic/models.py` | Duration/end time, statuses, and local doctor/patient conflict checks |
 | `smart_clinic/scheduling.py` | Shared interval-gap rule, candidate generation, padded bounds and read-only availability |
-| `smart_clinic/api_client.py` | CalendarClient contract, CalendarSnapshot, shared event normalization and JsonCalendarClient |
+| `smart_clinic/api_client.py` | Calendar contract, snapshots, shared normalization, JSON/Google clients and safe read failures |
+| `smart_clinic/config.py` | Explicit offline/live environment loading and configuration validation |
+| `smart_clinic/factories.py` | Simple Factory producing JSON or Google clients without constructor IO |
+| `smart_clinic/verify_calendar.py` | Explicit read-only live verification; not the final integrated demo |
+| `.env.example` | Empty credential/mapping placeholders and example timeout |
 | `smart_clinic/time_utils.py` | Standard-library boundary between external timestamps and clinic-local time |
 | `smart_clinic/strategies.py` | Shared selection contract, earliest and closest alternatives |
 | `data/calendar_responses.json` | Complete synthetic Google-shaped calendars for three independent doctors |
@@ -244,11 +272,14 @@ The Stage 1 modules listed above remain in place. M1-M3 add or extend:
 | `tests/test_models.py` | Durations, constructor compatibility, local conflicts and statuses |
 | `tests/test_scheduling.py` | Symmetric gap boundaries and invalid intervals |
 | `tests/test_repository.py` | Original dataset compatibility and temporary JSONL input checks |
-| `tests/conftest.py` | Temporary synthetic calendar file fixture |
+| `tests/conftest.py` | Temporary synthetic calendar fixture and a test-wide network prohibition |
 | `tests/test_availability.py` | Candidate grid, business boundaries, local conflicts and coverage |
 | `tests/test_api_client.py` | Snapshot validation, file reading and event normalization |
 | `tests/test_time_utils.py` | Offset conversion, all-day dates and date-specific query offsets |
 | `tests/test_strategies.py` | Selection, ties, empty/unsorted input and unchanged input/clinic state |
+| `tests/test_google_calendar_client.py` | Mocked GET, Retry, paging, normalization, error/log sanitization |
+| `tests/test_calendar_config.py` | Offline/live configuration and both Factory products |
+| `tests/test_verify_calendar.py` | Verification command with mocked HTTP and safe failure output |
 | `docs/tdd/m3-red.txt` | Actual failure output captured before closest-slot behavior was implemented |
 
 ### Main design decisions
@@ -319,8 +350,39 @@ The Stage 1 modules listed above remain in place. M1-M3 add or extend:
   sorts/mutates the input, checks availability, fetches data or books anything.
   This is the course-style Strategy pattern with a small shared contract;
   selection remains separate from availability and later service composition.
-- The live calendar connection, Factory, booking service, waiting-list behavior
-  and concurrency remain pending after M3.
+- `create_calendar_client(mode, config)` is the second course pattern, a Simple
+  Factory. `offline` creates JsonCalendarClient; `live` creates GoogleCalendarClient.
+  Both implement CalendarClient; unknown modes and invalid configuration are
+  rejected. Configuration is passed in, without a framework or extra pattern.
+  Constructors perform no HTTP or calendar-file reading.
+- GoogleCalendarClient uses requests GET with a URL-encoded calendar path,
+  timeMin/timeMax, timeZone=Asia/Jerusalem, singleEvents=True, showDeleted=False,
+  orderBy=startTime, finite timeout and pageToken when needed. Redirects are not
+  followed. HTTP is checked before JSON. It gathers every page, rejects repeated
+  or malformed tokens and never returns a partial snapshot. A supplied padded
+  window is not gap-padded again. Because Google ignores fractional query seconds,
+  only fractional HTTP bounds are rounded outward to whole seconds; results are
+  filtered back to the exact supplied coverage without clipping event endpoints.
+- The M2 normalizer remains shared and strict. A Google-only adapter accepts
+  omitted items as empty only with kind=calendar#events, a nonempty etag, valid
+  timeZone and no error. Present null/wrong-type items remain errors, and any
+  nextPageToken still requires another page. This follows the documented
+  collection format, Google's [empty-property guidance](https://google.github.io/styleguide/jsoncguide.html#emptynull-property-values),
+  and the [official client Events schema](https://github.com/googleapis/google-api-go-client/blob/main/calendar/v3/calendar-gen.go),
+  which models items with omitempty. This is a documented adapter rule, not a
+  claim that every malformed/missing collection is empty. The M2 JSON format
+  still requires explicit items. Unusable blocking events fail the entire read;
+  insufficient read access and error envelopes are rejected.
+- Each page's GET retries only Timeout or ConnectionError, at most three attempts
+  with a one-second wait between attempts. HTTP (including 401/403/429/503), JSON
+  and validation failures are not retried. CalendarReadError exposes a fixed
+  category (communication/http/json/validation), optional safe reason and integer
+  HTTP status. Logs never include keys, request URLs, raw response bodies or raw
+  requests exceptions; exception chaining is suppressed at the live boundary.
+  A failure never switches to JSON or an empty calendar. Successful Google reads
+  produce source=live; JSON results remain source=simulated.
+- Booking services, waiting-list behavior, concurrency and the final integrated
+  demo remain pending after M4.
 
 ### Verification evidence
 
@@ -378,3 +440,16 @@ Refactor. These are local commits and can be inspected with `git show <hash>`;
 no push or merge was performed. This later documentation records existing
 commit hashes without embedding its own hash. Real API and concurrency evidence
 remain pending their respective milestones.
+
+At M4 verification on 2026-10-30, all 349 cases passed (261 preserved cases plus
+88 new M4 cases), with 63 unittest subtests. HTTP and Retry waits were replaced
+where used, while the client/normalizer remained real. A test-wide socket guard
+prevents network access. The separate 19-case unittest suite, original 15-section
+demo, dependency check and git diff --check passed. Execution used Python 3.14.0;
+all 26 Python files also passed Python 3.11 syntax parsing.
+
+Real-provider verification is **pending**: the worktree has no .env and the
+process has no API key/calendar mapping. The explicit command stopped in
+configuration before HTTP. Mocked successes (including their live source flag)
+exercise the Google product contract only and are not evidence of a real Google
+connection. No account settings, API enablement, credentials or calendars changed.
