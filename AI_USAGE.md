@@ -266,3 +266,45 @@ The [correction record](docs/git-author-correction.md) maps original historical
 hashes retained in this log to the current hashes. The approved publication uses
 an explicit force-with-lease for stage-2-development only. This attribution
 correction does not alter the AI-assistance records or establish live API proof.
+
+## 10. Authorized M6 offline demonstration and proposed handoffs
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
+
+- Shon supplied the actual M6 implementation prompt after M5 review, authorizing
+  only the offline demonstration, live-entry-point documentation, teammate
+  handoff documents, focused checks and normal commit/push. This is the actual
+  M6 planning/implementation instruction, not a reconstructed Stage 1 prompt.
+- The prompt expected the original M5 hash ad68d8e. Inspection instead found
+  clean local/remote HEAD `846d2199c30bb4c3d89dd3c8161521cda64223db` after the
+  separately authorized Git identity correction. Codex verified that only
+  identity/TDD documentation differed in the resulting files; Shon explicitly
+  confirmed continuing from that current HEAD. The reviewed M5 implementation,
+  existing tests, source dataset and genuine M3 Red evidence were preserved.
+- Codex added demo_data.py to prepare fresh offline inputs through the actual
+  Factory/JSON client, with explicit 2026-10-29 working hours and preloaded
+  simulated snapshots for three registered doctors. demo_stage2.py composes the
+  existing service and both strategies; main.py retains its 15 Stage 1 sections
+  and appends the separate Stage 2 presentation. No scheduling/service rules
+  were changed. The data and scenario orchestration were AI-assisted; existing
+  synthetic source files were reused without modification.
+- The demo shows external blocking, different strategy choices, explicit booking
+  rejection/success, FIFO skip order, distinct replacement/history, subsequent
+  eligibility after a patient conflict is cancelled, and deferred backfill in a
+  fresh clinic with an explicitly injected DemonstrationFailureClient. That
+  failure is a controlled test dependency, not an observed Google outage.
+- English M7/M8 handoffs record exact existing interfaces, prepared inputs,
+  expected results and acceptance criteria. Ownership remains Shon's proposed
+  division pending coordination; no teammate agreement/work is claimed. No
+  coroutine, threading algorithm, coordinator or Lock implementation was added.
+- Live setup documentation follows the existing verify_calendar command and
+  official Google public-calendar/API-key instructions. It describes a later
+  read-only availability check, not a complete live booking workflow. Codex did
+  not create resources, change sharing, obtain secrets or run a live request.
+- Verification used Python 3.14.0 and pytest 9.2.0: 438 cases and 63 subtests
+  passed, including four new meaningful demo checks; all 19 lecturer-feedback
+  unittests passed separately. The combined demo, git diff --check and dependency
+  check passed. All 32 Python files passed Python 3.11 AST parsing; no separate
+  Python 3.11 execution is claimed. The default-demo test removes live settings
+  and blocks HTTP/.env loading, checks simulated labels and unchanged source
+  files. Real Google verification and M7/M8/M9 remain pending.

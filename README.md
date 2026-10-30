@@ -52,7 +52,8 @@ From the project root:
 .venv/bin/python main.py
 ```
 
-`main.py` loads `data/sample_data.jsonl` and prints a short demonstration in 15 numbered sections.
+`main.py` preserves the 15 numbered Stage 1 sections loading `data/sample_data.jsonl`,
+then runs a separate Stage 2 offline demonstration with fresh synthetic inputs.
 
 ## Project Map
 
@@ -192,8 +193,9 @@ slots: earliest start or closest start to a preference, with an earlier start
 breaking equal-distance ties. M4 adds a read-only GoogleCalendarClient, bounded
 Retry, a Simple Factory and explicit live configuration/verification. M5 adds
 AppointmentService for availability, suggestions, explicit booking and FIFO
-waiting-list backfill after cancellation. Concurrency and the final integrated
-demo remain pending.
+waiting-list backfill after cancellation. M6 composes those completed capabilities
+in an offline business demonstration and documents the proposed teammate handoffs.
+M7/M8 concurrency and the M9 integration of those modules remain pending.
 
 ### How to run
 
@@ -212,15 +214,35 @@ python3 -m venv .venv
 The `test` extra declares pytest; runtime dependencies are requests and
 python-dotenv. Offline mode does not load .env or require any credentials.
 
-For an explicitly configured, dedicated **public synthetic calendar only**,
-create a local ignored `.env` using the empty placeholders in `.env.example`.
-Set GOOGLE_CALENDAR_API_KEY locally, GOOGLE_CALENDAR_MAPPING to a JSON object
-mapping the existing synthetic doctor ID to its actual dedicated calendar ID,
-and REQUEST_TIMEOUT to a finite positive number (default 10). Do not paste keys
-into chat, log configuration, use a personal calendar, or enable HTTP debug logs
-that could include authenticated URLs. No credentials/calendar are created by
-this code. Environment values take precedence over the explicit project .env;
-dotenv interpolation is disabled. `primary` is not an accepted demo calendar ID.
+### Offline demonstration outcomes
+
+`python main.py` (with the installed environment active) requires no live
+configuration and does not load .env. It preserves the original 15 sections,
+then prints a separate `Stage 2: offline scheduling demonstration (simulated)`.
+The new presentation module calls the actual Factory, JSON client, both
+strategies and AppointmentService; it does not implement scheduling rules.
+
+| Step on fixed date 2026-10-29 | Expected result |
+|---|---|
+| D001 works 09:00-12:00; synthetic external event 10:00-10:30 | 11 candidates become 6 available slots after the 15-minute gap rule |
+| Same valid slots, preference 11:00 | Earliest selects 09:00-09:30; closest selects 11:00-11:30; neither books |
+| Explicit booking 09:30-10:00 | Rejected for insufficient external gap, with no booking |
+| Explicit booking 10:45-11:15 | DEMO-ORIGINAL is registered locally |
+| FIFO WAIT-FIRST, WAIT-SECOND, WAIT-THIRD; first patient's D002 appointment conflicts | Cancellation fills WAIT-SECOND; WAIT-FIRST remains ahead of WAIT-THIRD |
+| Original and replacement records | Original remains cancelled; replacement has a distinct new ID |
+| Remove the other-doctor patient conflict and cancel the replacement | WAIT-FIRST now fills the slot, proving temporary ineligibility did not lose its position |
+| Separate fresh clinic with injected DemonstrationFailureClient | Cancellation remains cancelled, backfill is deferred, no replacement, queue preserved |
+
+Every successful calendar result in this demo is `simulated`. The last step
+explicitly identifies the injected test client and never makes an HTTP request.
+All changes are in fresh in-memory clinics; both source data files stay unchanged.
+
+### Explicit live availability verification (still pending)
+
+Follow [the live setup and verification guide](docs/live-verification.md) for
+the dedicated public synthetic calendar, API enablement, API key, doctor/calendar
+mapping and a known event/window. Those account resources are not created by
+the code. Do not put real medical data in a public calendar or paste keys in chat.
 
 Minimal explicit read-only verification (edit dates to match the synthetic events):
 
@@ -234,7 +256,9 @@ verification patient and no local bookings. It prints source, normalized busy
 intervals, blocked candidates and remaining available slots. A synthetic busy
 event at 10:00-10:30 rejects 09:30-10:00 and 10:00-10:30 through the existing pure
 calculation. A configuration/read failure prints a safe message and exits 1.
-This is a verification entry point; the default main.py still runs entirely offline.
+This calculates availability only, not a complete live booking workflow.
+Real Google verification remains pending configuration; no live request was run
+in M6. The default main.py runs entirely offline.
 
 The original `main.py` demonstration is preserved. To inspect M2 availability
 directly, run this separate offline calculation from the project root:
@@ -255,7 +279,7 @@ print(slots)
 
 ### Code organization
 
-The Stage 1 modules listed above remain in place. M1-M5 add or extend:
+The Stage 1 modules listed above remain in place. M1-M6 add or extend:
 
 | File | Responsibility |
 |---|---|
@@ -266,6 +290,8 @@ The Stage 1 modules listed above remain in place. M1-M5 add or extend:
 | `smart_clinic/config.py` | Explicit offline/live environment loading and configuration validation |
 | `smart_clinic/factories.py` | Simple Factory producing JSON or Google clients without constructor IO |
 | `smart_clinic/verify_calendar.py` | Explicit read-only live verification; not the final integrated demo |
+| `smart_clinic/demo_stage2.py` | M6 presentation using actual services plus an explicitly injected failure client |
+| `smart_clinic/demo_data.py` | Fresh offline clinic, explicit working hours and preloaded snapshots for three doctors |
 | `.env.example` | Empty credential/mapping placeholders and example timeout |
 | `smart_clinic/time_utils.py` | Standard-library boundary between external timestamps and clinic-local time |
 | `smart_clinic/strategies.py` | Shared selection contract, earliest and closest alternatives |
@@ -285,7 +311,11 @@ The Stage 1 modules listed above remain in place. M1-M5 add or extend:
 | `tests/test_verify_calendar.py` | Verification command with mocked HTTP and safe failure output |
 | `tests/test_services.py` | Integrated booking, stale local state, FIFO backfill and failure policies |
 | `tests/test_waiting_requests.py` | Request fields, duration/window validity and read-only contract |
+| `tests/test_demo.py` | Combined offline execution, real business outcomes, controlled failure and handoff inputs |
 | `docs/tdd/m3-red.txt` | Actual failure output captured before closest-slot behavior was implemented |
+| `docs/live-verification.md` | Exact later setup/command and expected availability; live evidence remains pending |
+| `docs/handoff-m7-yotam.md` | Proposed M7 inputs, pure service interface and async acceptance criteria |
+| `docs/handoff-m8-tufik.md` | Proposed M8 snapshot/booking interface and shared Lock acceptance criteria |
 
 ### Main design decisions
 
@@ -413,7 +443,8 @@ The Stage 1 modules listed above remain in place. M1-M5 add or extend:
   request is removed only after successful manager registration. The cancelled
   appointment stays as history. A monotonic BACKFILL counter checks every proposed
   ID against existing appointments; IDs are not based on collection length.
-- Concurrency and the final integrated demo remain pending after M5.
+- M6 demonstrates the completed local workflow. M7/M8 concurrency and the final
+  M9 integration remain pending.
 
 The M5 public service contracts are:
 
@@ -446,8 +477,29 @@ the same manager/service. All concurrent writers will need that later common
 coordinator. The M5 service itself is not synchronized; methods such as book and
 cancel are orchestration paths that may read externally. No Lock, coordinator,
 Threads or asyncio implementation is included, and a snapshot is not an atomic
-transaction against Google Calendar. These are interface contracts, not the M6
-demo/handoff or implementations of teammates' milestones.
+transaction against Google Calendar. M6 documents these contracts and prepares
+inputs; it does not implement teammates' milestones.
+
+### Proposed teammate handoffs and remaining work
+
+Ownership is Shon's proposed division, pending coordination; no teammate
+agreement or contribution is asserted here.
+
+- [Yotam / M7](docs/handoff-m7-yotam.md): three registered doctors, preloaded
+  simulated snapshots, explicit hours and `available_slots_using_snapshot`.
+  Sequential and asyncio runs must use identical inputs and return results in
+  input order, without IO/booking/mutation inside coroutines.
+- [Tufik / M8](docs/handoff-m8-tufik.md): shared manager/service and the
+  `fetch_snapshot` / `book_using_snapshot` boundary. One shared coordinator and
+  Lock must cover final local recheck plus insertion; all concurrent writers use
+  it. Two competing Threads must yield one approval without prescribing a winner.
+- M9: integrate the teammates' implemented modules, compare demo timings, verify
+  locked booking results, run final tests and retain genuine TDD/provider evidence.
+
+`prepare_demo_inputs()` preloads D001/D002/D003 snapshots synchronously before
+any future concurrent work. The fixed 09:00-12:00 window yields 6/11/0 available
+slots respectively, with no appointments that day in the original dataset.
+No asyncio, threading module or coordinator solution is supplied by M6.
 
 ### Verification evidence
 
@@ -538,3 +590,17 @@ without booking. A real JSON-client flow uses the unchanged synthetic source
 files; another reads malformed JSON from tmp_path and verifies deferred backfill.
 These are offline/mocked results. Real Google verification remains pending
 configuration; the milestone commit/push does not establish live connectivity.
+
+At M6 verification on 2026-10-30, all 438 cases passed (434 preserved plus four
+focused demo checks), with 63 unittest subtests. The separate 19-case lecturer
+suite, combined 15-section Stage 1 plus Stage 2 demo, dependency check and
+git diff --check passed. Runtime was Python 3.14.0 with pytest 9.2.0; all 32
+Python files passed Python 3.11 syntax parsing, not execution on Python 3.11.
+
+The default-demo check removes live credential/configuration variables, rejects
+any HTTP attempt and any .env load, then executes the combined main function.
+It verifies simulated labelling and unchanged input files. Other focused checks
+inspect actual booking/cancellation/FIFO state, deferred backfill after the
+explicit injected failure and the three-doctor 6/11/0 prepared results. The
+reviewed M5 service and all earlier regression tests remain unchanged. No live
+request or account configuration change was made; M7, M8 and M9 are incomplete.

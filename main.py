@@ -4,6 +4,7 @@ from pathlib import Path
 
 from smart_clinic import processing
 from smart_clinic.context_managers import AppointmentProcessing
+from smart_clinic.demo_stage2 import run_stage2_demo
 from smart_clinic.iterators import (
     AppointmentCollection,
     appointment_label_pipeline,
@@ -264,6 +265,7 @@ def main():
     show_lazy_pipeline(appointments)
     show_context_manager_success(manager)
     show_context_manager_failure(manager)
+    run_stage2_demo()
 
 
 if __name__ == "__main__":
