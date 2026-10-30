@@ -5,4 +5,5 @@ from smart_clinic.models import (
     Patient,
     Person,
     Visit,
+    WaitingRequest,
 )

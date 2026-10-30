@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from smart_clinic.scheduling import intervals_conflict
+from smart_clinic.time_utils import validate_local_window
 
 
 class Person:
@@ -55,6 +56,15 @@ class Doctor(Person):
         return f"Doctor(id={self.id!r}, name={self.name!r}, specialty={self.specialty!r})"
 
 
+def _validate_duration(duration_minutes):
+    if (
+        not isinstance(duration_minutes, int)
+        or isinstance(duration_minutes, bool)
+        or duration_minutes <= 0
+    ):
+        raise ValueError("duration_minutes must be a positive integer.")
+
+
 class Appointment:
     VALID_STATUSES = {"scheduled", "cancelled", "in_progress", "completed", "no_show"}
     ACTIVE_STATUSES = {"scheduled", "in_progress"}
@@ -77,12 +87,7 @@ class Appointment:
             raise TypeError("doctor must be a Doctor instance.")
         if not isinstance(scheduled_at, datetime):
             raise TypeError("scheduled_at must be a datetime instance.")
-        if (
-            not isinstance(duration_minutes, int)
-            or isinstance(duration_minutes, bool)
-            or duration_minutes <= 0
-        ):
-            raise ValueError("duration_minutes must be a positive integer.")
+        _validate_duration(duration_minutes)
 
         self.appointment_id = appointment_id.strip()
         self.patient = patient
@@ -129,6 +134,55 @@ class Appointment:
             f"scheduled_at={self.scheduled_at!r}, status={self.status!r}, "
             f"duration_minutes={self.duration_minutes!r})"
         )
+
+
+class WaitingRequest:
+    """A flexible local request; clinic membership/uniqueness is checked on enqueue."""
+
+    def __init__(self, request_id, patient, doctor, window_start, window_end, duration_minutes=30):
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise ValueError("Waiting request ID must be a non-empty string.")
+        if not isinstance(patient, Patient) or not isinstance(doctor, Doctor):
+            raise TypeError("Waiting request needs Patient and Doctor instances.")
+        validate_local_window(window_start, window_end)
+        _validate_duration(duration_minutes)
+        if window_start + timedelta(minutes=duration_minutes) > window_end:
+            raise ValueError("Waiting request duration must fit within its window.")
+        self._request_id = request_id.strip()
+        self._patient = patient
+        self._doctor = doctor
+        self._window_start = window_start
+        self._window_end = window_end
+        self._duration_minutes = duration_minutes
+
+    @property
+    def request_id(self):
+        return self._request_id
+
+    @property
+    def patient(self):
+        return self._patient
+
+    @property
+    def doctor(self):
+        return self._doctor
+
+    @property
+    def window_start(self):
+        return self._window_start
+
+    @property
+    def window_end(self):
+        return self._window_end
+
+    @property
+    def duration_minutes(self):
+        return self._duration_minutes
+
+    def __repr__(self):
+        return (f"WaitingRequest(request_id={self.request_id!r}, patient={self.patient.id!r}, "
+                f"doctor={self.doctor.id!r}, window_start={self.window_start!r}, "
+                f"window_end={self.window_end!r}, duration_minutes={self.duration_minutes!r})")
 
 
 class Visit:
@@ -183,6 +237,15 @@ class ClinicManager:
     def find_doctor(self, doctor_id: str):
         return self.doctors.get(doctor_id)
 
+    def validate_participants(self, patient, doctor):
+        """Share exact registered-object checks with new service entry points."""
+        if not isinstance(patient, Patient) or not isinstance(doctor, Doctor):
+            raise TypeError("Expected Patient and Doctor instances.")
+        if self.patients.get(patient.id) is not patient:
+            raise ValueError("Appointment patient must be registered with this clinic.")
+        if self.doctors.get(doctor.id) is not doctor:
+            raise ValueError("Appointment doctor must be registered with this clinic.")
+
     def has_doctor_conflict(
         self, doctor: Doctor, scheduled_at: datetime, duration_minutes: int = 30
     ) -> bool:
@@ -220,10 +283,7 @@ class ClinicManager:
             raise ValueError(
                 f"Appointment with ID {appointment.appointment_id} already exists."
             )
-        if self.patients.get(appointment.patient.id) is not appointment.patient:
-            raise ValueError("Appointment patient must be registered with this clinic.")
-        if self.doctors.get(appointment.doctor.id) is not appointment.doctor:
-            raise ValueError("Appointment doctor must be registered with this clinic.")
+        self.validate_participants(appointment.patient, appointment.doctor)
         if appointment.is_active and self.has_doctor_conflict(
             appointment.doctor, appointment.scheduled_at, appointment.duration_minutes
         ):

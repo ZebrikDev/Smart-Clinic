@@ -190,8 +190,10 @@ complete synthetic calendar snapshot, explicit doctor working hours and current
 local appointments. M3 adds two selection strategies for those already-valid
 slots: earliest start or closest start to a preference, with an earlier start
 breaking equal-distance ties. M4 adds a read-only GoogleCalendarClient, bounded
-Retry, a Simple Factory and explicit live configuration/verification. The booking
-service, waiting-list backfill, concurrency and final integrated demo remain pending.
+Retry, a Simple Factory and explicit live configuration/verification. M5 adds
+AppointmentService for availability, suggestions, explicit booking and FIFO
+waiting-list backfill after cancellation. Concurrency and the final integrated
+demo remain pending.
 
 ### How to run
 
@@ -253,11 +255,12 @@ print(slots)
 
 ### Code organization
 
-The Stage 1 modules listed above remain in place. M1-M4 add or extend:
+The Stage 1 modules listed above remain in place. M1-M5 add or extend:
 
 | File | Responsibility |
 |---|---|
-| `smart_clinic/models.py` | Duration/end time, statuses, and local doctor/patient conflict checks |
+| `smart_clinic/models.py` | Appointment duration/status, WaitingRequest, shared membership checks and local conflicts |
+| `smart_clinic/services.py` | Injected appointment workflow, separate reads/calculation/booking, per-doctor FIFO and cancellation/backfill |
 | `smart_clinic/scheduling.py` | Shared interval-gap rule, candidate generation, padded bounds and read-only availability |
 | `smart_clinic/api_client.py` | Calendar contract, snapshots, shared normalization, JSON/Google clients and safe read failures |
 | `smart_clinic/config.py` | Explicit offline/live environment loading and configuration validation |
@@ -280,6 +283,8 @@ The Stage 1 modules listed above remain in place. M1-M4 add or extend:
 | `tests/test_google_calendar_client.py` | Mocked GET, Retry, paging, normalization, error/log sanitization |
 | `tests/test_calendar_config.py` | Offline/live configuration and both Factory products |
 | `tests/test_verify_calendar.py` | Verification command with mocked HTTP and safe failure output |
+| `tests/test_services.py` | Integrated booking, stale local state, FIFO backfill and failure policies |
+| `tests/test_waiting_requests.py` | Request fields, duration/window validity and read-only contract |
 | `docs/tdd/m3-red.txt` | Actual failure output captured before closest-slot behavior was implemented |
 
 ### Main design decisions
@@ -381,8 +386,68 @@ The Stage 1 modules listed above remain in place. M1-M4 add or extend:
   requests exceptions; exception chaining is suppressed at the live boundary.
   A failure never switches to JSON or an empty calendar. Successful Google reads
   produce source=live; JSON results remain source=simulated.
-- Booking services, waiting-list behavior, concurrency and the final integrated
-  demo remain pending after M4.
+- AppointmentService receives the existing manager, client, strategy and a
+  doctor-ID-to-working-intervals dictionary through its constructor. Inputs use
+  exact registered Patient/Doctor objects and clinic-local naive datetimes.
+  Availability reuses the M2 pure calculation; mutation registers through the
+  manager, with shared exact-object membership and M1 conflict checks. Explicit
+  booking accepts only the requested start/duration and never invokes a strategy
+  to silently replace them.
+- WaitingRequest(request_id, patient, doctor, window_start, window_end,
+  duration_minutes=30) has read-only fields, a positive integer duration (not bool)
+  and a positive naive window long enough for that duration. Enqueue validates
+  current registration and unique pending request IDs across all doctor queues,
+  without calendar access. Queues are local deques owned by this service instance.
+- M5 project cancellation policy: only scheduled appointments can be cancelled.
+  Unknown IDs, in_progress and terminal statuses are rejected before calendar IO
+  or mutation. A valid cancellation remains cancelled even if backfill reads fail.
+  With no pending requests, no calendar read is needed. Otherwise a failed or
+  incomplete read defers backfill and preserves the queue; it never creates an
+  empty-calendar fallback.
+- M5 replacement policy: start exactly at the cancelled start, fit entirely within
+  its original freed interval, and fit inside the waiting request's acceptable
+  window. Shorter replacements are allowed; longer ones are skipped. The first
+  currently eligible request is booked after all usual working-hour, grid,
+  external and local checks. Skipped requests retain relative order, other doctor
+  queues are untouched, and at most one replacement is created. The selected
+  request is removed only after successful manager registration. The cancelled
+  appointment stays as history. A monotonic BACKFILL counter checks every proposed
+  ID against existing appointments; IDs are not based on collection length.
+- Concurrency and the final integrated demo remain pending after M5.
+
+The M5 public service contracts are:
+
+| Method | Result and side effects |
+|---|---|
+| `fetch_snapshot(patient, doctor, window_start, window_end)` | Complete snapshot; performs one client call using bounds padded by 15 minutes on each side |
+| `available_slots(patient, doctor, window_start, window_end, duration_minutes=30)` | Sorted `(start, end)` list after a complete read; no clinic mutation |
+| `available_slots_using_snapshot(patient, doctor, window_start, window_end, snapshot, duration_minutes=30)` | Same list with no IO or mutation, using current local appointments |
+| `suggest_slot(patient, doctor, window_start, window_end, preferred_start, duration_minutes=30)` | Injected strategy's valid slot, or None for a valid empty result; reads but does not book |
+| `book(appointment_id, patient, doctor, start, duration_minutes=30)` | Registered Appointment; fetches before delegating to local recheck/registration |
+| `book_using_snapshot(appointment_id, patient, doctor, start, snapshot, duration_minutes=30)` | Registered Appointment with no IO; rechecks membership, IDs, availability and final manager invariants |
+| `add_waiting_request(request)` | The enqueued WaitingRequest; no IO |
+| `waiting_requests(doctor_id)` | Read-only FIFO tuple; empty/unknown queue gives an empty tuple |
+| `cancel(appointment_id)` | Dictionary with `cancelled_appointment`, `replacement` (Appointment or None) and `backfill_status` |
+
+`backfill_status` is `filled`, `unfilled` (valid cancellation with no eligible
+replacement), or `deferred` (cancellation succeeded but external availability is
+unknown). Invalid business input, membership, duplicate IDs or unavailable
+explicit slots raise ValueError; wrong model/contract types raise TypeError.
+AvailabilityUnknownError means a read or snapshot is unusable, with no booking
+and no switch to another source. Snapshots are validated/copied through the
+existing CalendarSnapshot constructor and must cover the requested interval plus
+its gaps. A source flag is preserved, not relabelled.
+
+For Yotam, the prepared pure entry point is available_slots_using_snapshot with
+preloaded per-doctor snapshots and registered participants; its output is the M2
+slot list. For Tufik, fetch_snapshot belongs before a future shared Lock and
+book_using_snapshot belongs inside the protected check-and-insert section, on
+the same manager/service. All concurrent writers will need that later common
+coordinator. The M5 service itself is not synchronized; methods such as book and
+cancel are orchestration paths that may read externally. No Lock, coordinator,
+Threads or asyncio implementation is included, and a snapshot is not an atomic
+transaction against Google Calendar. These are interface contracts, not the M6
+demo/handoff or implementations of teammates' milestones.
 
 ### Verification evidence
 
@@ -453,3 +518,18 @@ process has no API key/calendar mapping. The explicit command stopped in
 configuration before HTTP. Mocked successes (including their live source flag)
 exercise the Google product contract only and are not evidence of a real Google
 connection. No account settings, API enablement, credentials or calendars changed.
+
+At M5 verification on 2026-10-30, all 434 cases passed (349 existing plus 85 new),
+with 63 unittest subtests. The separate 19-case lecturer suite, original 15-section
+demo and git diff --check passed. Runtime execution used Python 3.14.0 with pytest
+9.2.0; all 29 Python files passed Python 3.11 syntax parsing, without claiming
+execution on a separate 3.11 interpreter. No new dependencies were required.
+
+M5 tests exercise both strategies through the service, external blocking, exact
+registration/IDs, current-state rechecks after snapshots, doctor/patient gaps at
+14/15/16 minutes in both directions, explicit working-hour/grid enforcement,
+FIFO skip order, replacement duration/window limits, distinct IDs, and failure
+without booking. A real JSON-client flow uses the unchanged synthetic source
+files; another reads malformed JSON from tmp_path and verifies deferred backfill.
+These are offline/mocked results. Real Google verification remains pending
+configuration; the milestone commit/push does not establish live connectivity.

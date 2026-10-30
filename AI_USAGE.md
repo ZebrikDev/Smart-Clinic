@@ -220,3 +220,34 @@ commit and push of the reviewed M1-M4 history to stage-2-development. The preced
 no-commit statement records the earlier implementation checkpoint. Implementation
 and mocked verification are complete; real-provider verification remains pending
 configuration. Publication does not prove Google connectivity.
+
+## 8. Stage 2: authorized M5 appointment workflow
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
+
+- Shon authorized M5 only, including a focused commit and normal branch push
+  before stopping for Technical Lead review. The clean local and remote baseline
+  was c86172f03a9be05ac6e930ba175256388ede3f20. All 349 existing cases passed first.
+- Codex added AppointmentService with constructor-injected manager, calendar
+  client, strategy and explicit working hours. Fetching, pure snapshot calculation
+  and snapshot-based booking are separate. Booking reuses M2 availability and
+  the manager registration path, with no alternate-time selection or fallback.
+- WaitingRequest was added with validated, read-only fields. Existing appointment
+  duration validation and manager membership checks were extracted into shared
+  helpers so the service/model reuse them; the original regression expectations
+  were not changed. A per-doctor deque tracks unique pending requests locally.
+- The explicit M5 policies came from Shon's implementation request: scheduled-only
+  cancellation; valid cancellation survives read failure with deferred backfill;
+  replacements start at the original start, fit the freed interval and fit the
+  request window. The service preserves skipped FIFO order and removes only a
+  successfully registered request, creating at most one distinct replacement.
+- Final verification passed 434 cases (85 new M5 cases), 63 unittest subtests,
+  the separate 19-case lecturer suite, the original demo and git diff --check.
+  Execution used Python 3.14.0 and pytest 9.2.0; 29 files passed Python 3.11 syntax
+  parsing. A complete offline test uses the real JSON client and preserved source
+  data; malformed tmp_path JSON also verifies safe deferred cancellation.
+- The service interfaces for Yotam's pure calculation and Tufik's later protected
+  booking are documented without implementing their modules or an M6 handoff.
+  No M6 demo, Lock, coordinator, threads, asyncio, persistence or Google writes
+  were added. Real Google verification remains pending configuration; automated
+  tests and milestone publication are not provider evidence.
