@@ -251,3 +251,18 @@ Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
   No M6 demo, Lock, coordinator, threads, asyncio, persistence or Google writes
   were added. Real Google verification remains pending configuration; automated
   tests and milestone publication are not provider evidence.
+
+## 9. Authorized Stage 2 Git identity correction
+
+On 2026-10-30, Shon explicitly approved correcting the author and committer of
+his seven published Stage 2 commits to ZebrikDev, using the email associated
+with his earlier GitHub commits. Codex performed the metadata correction after
+creating a local backup branch and verifying a Git bundle. Each replacement
+retains the original complete file tree, message and both timestamps; only the
+identities and resulting parent/commit hashes change. The genuine M3 TDD states
+and their order are preserved. Source code, tests, data and Stage 1 history are
+unchanged. README references are repaired in a separate documentation commit.
+The [correction record](docs/git-author-correction.md) maps original historical
+hashes retained in this log to the current hashes. The approved publication uses
+an explicit force-with-lease for stage-2-development only. This attribution
+correction does not alter the AI-assistance records or establish live API proof.

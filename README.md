@@ -494,17 +494,22 @@ ClosestToRequestedStrategy was developed through genuine Red/Green/Refactor:
 
 | Stage | Local commit | Evidence |
 |---|---|---|
-| Reviewed M1-M2 baseline | `550ab9316e6a94859ba7a4d7032a8d2750e89b0d` | 242 cases passed before strategy work |
-| Red | `679aafd6e4430c55b12490f0e9dbb6685687b586` | 11 failed, 8 passed in the strategy suite; failure was NotImplementedError in select |
-| Green | `60d2d3c02a3136612ef1d58f0e401bbd5506eddb` | Closest selection implemented; all 261 cases passed |
-| Refactor | `5e8ba6d8e8b71ca68cb1a4db0fd504b31fb78608` | Manual best-slot/key tracking replaced by min with the same ranking tuple; all 261 cases stayed green |
+| Reviewed M1-M2 baseline | `4788a6d362dd6eb307476a94e7eaef3cf5606b6e` | 242 cases passed before strategy work |
+| Red | `6d2e55af73126fcd2bca25b3112eec685ce80e9d` | 11 failed, 8 passed in the strategy suite; failure was NotImplementedError in select |
+| Green | `97dde5106213a1aa090bc0610416435e465e8498` | Closest selection implemented; all 261 cases passed |
+| Refactor | `ab5ebde75af843c3651800d3e2bc64dcaf4f9709` | Manual best-slot/key tracking replaced by min with the same ranking tuple; all 261 cases stayed green |
 
 The exact original Red output is preserved in [docs/tdd/m3-red.txt](docs/tdd/m3-red.txt).
 The same strategy tests and expected results were retained through Green and
-Refactor. These are local commits and can be inspected with `git show <hash>`;
-no push or merge was performed. This later documentation records existing
-commit hashes without embedding its own hash. Real API and concurrency evidence
-remain pending their respective milestones.
+Refactor. The commits were initially local at the M3 checkpoint and were later
+published with M4. On 2026-10-30, Shon authorized correcting their Git identities
+to ZebrikDev. The table above uses the corrected hashes; the
+[identity-correction record](docs/git-author-correction.md) maps all seven original
+Stage 2 hashes to their replacements. Every rewritten commit retains its exact
+file tree, message and timestamps, including the genuine TDD sequence. Original
+hashes in historical AI_USAGE entries describe the identifiers at those earlier
+checkpoints. Real API and concurrency evidence remain pending their respective
+milestones.
 
 At M4 verification on 2026-10-30, all 349 cases passed (261 preserved cases plus
 88 new M4 cases), with 63 unittest subtests. HTTP and Retry waits were replaced
