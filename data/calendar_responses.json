@@ -1,0 +1,32 @@
+{
+  "doctors": {
+    "D001": {
+      "kind": "calendar#events",
+      "timeZone": "Asia/Jerusalem",
+      "items": [
+        {
+          "id": "synthetic-busy-1",
+          "status": "confirmed",
+          "start": {"dateTime": "2026-10-29T10:00:00+02:00"},
+          "end": {"dateTime": "2026-10-29T10:30:00+02:00"}
+        }
+      ]
+    },
+    "D002": {
+      "kind": "calendar#events",
+      "timeZone": "Asia/Jerusalem",
+      "items": []
+    },
+    "D003": {
+      "kind": "calendar#events",
+      "timeZone": "Asia/Jerusalem",
+      "items": [
+        {
+          "id": "synthetic-all-day-1",
+          "start": {"date": "2026-10-29"},
+          "end": {"date": "2026-10-30"}
+        }
+      ]
+    }
+  }
+}

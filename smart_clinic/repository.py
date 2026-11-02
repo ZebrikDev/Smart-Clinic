@@ -75,6 +75,7 @@ def _load_appointment(record: dict, manager: ClinicManager, line_num: int):
             doctor=doctor,
             scheduled_at=scheduled_at,
             status=record["status"],
+            duration_minutes=record.get("duration_minutes", 30),
         )
         manager.schedule_appointment(appointment)
     except (ValueError, TypeError) as exc:

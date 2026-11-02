@@ -89,3 +89,321 @@ How it was checked:
 - A second visit for an already visited appointment was tried and rejected with a `ValueError`.
 - Each statement in the README was compared with the code and with the output of `main.py`.
 - `git diff` was reviewed before each commit, and the approved Project Proposal in the README was not changed.
+
+## 4. Stage 2: M0 planning and authorized M1 implementation
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-29.
+
+- The actual Stage 2 master prompt supplied the architecture, course sources,
+  business rules and milestone boundaries. This is an actual Stage 2 planning
+  prompt, not a reconstruction of a Stage 1 conversation. It first authorized
+  read-only M0 inspection and planning; M1 was authorized separately after review.
+- Codex backed up the dirty Stage 1 checkout and prepared a separate
+  `stage-2-development` worktree from the main commit verified against GitHub.
+  Lecturer-feedback fixes and the 19 existing tests were transferred. This file
+  used main as its baseline; the older local draft was retained in the backup,
+  and historical attribution differences were not reconciled.
+- For M1, Codex implemented duration validation and end times, `no_show`, a pure
+  gap predicate, local doctor/patient conflict checks and optional JSONL duration
+  loading, and added pytest coverage and test setup documentation.
+- Verification preserved the existing regressions, checked 14/15/16-minute gaps
+  in both directions and both registration paths, tested invalid durations and
+  the unchanged dataset, and ran the existing demonstration. The terminal-status
+  tests were explicitly extended so `no_show` cannot become active again.
+- Shon's two expected external-calendar rejections remain attributed to Shon:
+  with work hours 09:00-12:00 and busy time 10:00-10:30, requests 09:30-10:00 and
+  10:00-10:30 must both be rejected. They are reserved for M2; they were not
+  exercised against an external calendar in M1. The proposed valid boundaries
+  09:15-09:45 and 10:45-11:15 came from the planning agent.
+- No Calendar connection, strategies, waiting-list behavior or concurrency were
+  implemented in M1. No commits, push or merge were performed by Codex in M0/M1.
+
+## 5. Stage 2: authorized M2 implementation
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-29.
+
+- Shon reported Technical Lead approval of M1 and explicitly authorized M2 only.
+  A byte-for-byte snapshot of the reviewed worktree was saved before changes.
+- Codex implemented pure candidate generation and availability filtering,
+  CalendarClient/CalendarSnapshot, JsonCalendarClient, one shared Google-shaped
+  event normalizer and small standard-library datetime/zoneinfo helpers. The
+  calendar fixture contains synthetic events only; the Stage 1 JSONL is unchanged.
+- The implementation reuses the M1 gap predicate. The caller pads the search
+  window once; the client preserves original event endpoints and exact coverage.
+  Timezone helpers convert offsets before removing tzinfo, interpret all-day
+  dates in the calendar timezone and generate date-specific query offsets.
+- Shon's two rejection expectations and the planning agent's two acceptance
+  boundaries are tested with their attribution retained. Additional checks cover
+  working hours, local conflicts, invalid coverage/input and timezone conversion.
+- The existing 115 M1 cases passed before implementation. Final verification
+  passed all 242 cases (127 new M2 cases), 63 unittest subtests, the separate
+  19-case unittest suite, all 15 original demo sections and git diff --check.
+  Execution used Python 3.14.0; 18 Python files also passed Python 3.11 syntax
+  parsing. No network, API keys or real calendar data were used by the tests.
+- No Google client, Factory, selection strategy, booking service, waiting-list
+  behavior or concurrency was implemented. The M3 TDD opportunity remains open.
+  No commits, push or merge were performed for M2.
+
+## 6. Stage 2: authorized M3 Strategy and TDD
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
+
+- Shon reported Technical Lead approval of M2 and explicitly authorized local
+  commits for the reviewed baseline and genuine M3 Red/Green/Refactor stages.
+  No push, merge, rebase, amend or history rewriting was authorized or performed.
+- Codex reproduced the reviewed M2 files from the saved artifacts before staging.
+  All 25 project files matched, with no unexpected changes. The 242 existing
+  cases passed. Only reviewed project sources, synthetic data, tests and
+  documentation were included; virtual environments, backups and review artifacts
+  remained outside Git.
+- The reviewed M1-M2 baseline was committed locally as
+  `550ab9316e6a94859ba7a4d7032a8d2750e89b0d`
+  (Preserve reviewed Smart Clinic M1 and M2).
+- Codex added the shared SlotSelectionStrategy contract and both alternatives.
+  Tests for closest-slot behavior were written before its implementation. The
+  initial method raised NotImplementedError; the actual run had 11 failures and
+  8 passes, without import/environment failures. That state and the captured
+  output in docs/tdd/m3-red.txt were committed as
+  `679aafd6e4430c55b12490f0e9dbb6685687b586`
+  (test: record Red for closest slot selection).
+- Green implemented distance/start ranking with an explicit loop, and all 261
+  cases passed. The local commit is
+  `60d2d3c02a3136612ef1d58f0e401bbd5506eddb`
+  (feat: implement closest slot selection (Green)).
+- Refactor replaced the manual best-slot/key bookkeeping with min and an explicit
+  ranking key, preserving tests and behavior. All 261 cases remained green.
+  The local commit is `5e8ba6d8e8b71ca68cb1a4db0fd504b31fb78608`
+  (refactor: express closest selection with a ranking key).
+- The 19 new cases cover both strategies, empty and unsorted input, exact
+  preferences, equal-distance ties and unchanged slots/clinic state. Existing
+  M1-M2 implementation and tests were preserved. The final checks also ran the
+  original demo and git diff --check, using Python 3.14.0 and pytest 9.2.0;
+  Python 3.11 syntax was checked separately.
+- README/AI_USAGE record the completed TDD hashes in a later documentation
+  commit so no circular or self-referential hash is required. No Google client,
+  Factory, booking service, waiting list or concurrency was implemented in M3.
+
+## 7. Stage 2: authorized M4 calendar client and Factory
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
+
+- Shon reported M3 approval and authorized M4 only, without an M4 commit. The
+  initial worktree was clean at 72cd2840290c576b5c724ffd71db842f91eda7f1;
+  all 261 existing cases passed before changes. The baseline and TDD history
+  were preserved.
+- Codex implemented GoogleCalendarClient using requests, per-page bounded Retry,
+  complete pagination and sanitized failure categories; added Simple Factory,
+  minimal offline/live configuration, .env.example and an explicit read-only
+  verification command. Default main.py and the original JSONL are unchanged.
+- Current Google documentation and its official client schema were consulted.
+  The shared M2 normalizer stayed strict; a separate Google adapter handles an
+  omitted empty items list only in a recognized envelope. Fractional query
+  bounds are rounded outward because Google ignores query fractions, then
+  results are filtered to exact coverage while preserving original endpoints.
+- requests and python-dotenv were declared in pyproject.toml and installed only
+  in the isolated .venv. No real key or calendar ID was invented. The environment
+  example has an empty key and empty mapping; tests use clearly fake values.
+- Final mocked/local verification passed 349 cases (88 new M4 cases), with 63
+  unittest subtests, the separate 19-case suite, original demo, dependency check
+  and git diff --check. Tests replace HTTP and actual waits, and a socket guard
+  prohibits network access. Fake-key checks cover error text, tracebacks and logs.
+- Runtime verification used Python 3.14.0; 26 files passed Python 3.11 syntax
+  parsing. Real-provider verification remains pending: .env is absent in this
+  worktree and no key/mapping is present in the process environment. The explicit
+  command failed safely before HTTP. Mocked responses are not real API evidence.
+- No credentials, calendars, account permissions or paid services were created
+  or changed. No M5 booking service, waiting list, concurrency or final integrated
+  demo was implemented. No commit, push, merge or history rewriting occurred in M4.
+
+Publication follow-up: after Technical Lead review, Shon authorized a normal
+commit and push of the reviewed M1-M4 history to stage-2-development. The preceding
+no-commit statement records the earlier implementation checkpoint. Implementation
+and mocked verification are complete; real-provider verification remains pending
+configuration. Publication does not prove Google connectivity.
+
+## 8. Stage 2: authorized M5 appointment workflow
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
+
+- Shon authorized M5 only, including a focused commit and normal branch push
+  before stopping for Technical Lead review. The clean local and remote baseline
+  was c86172f03a9be05ac6e930ba175256388ede3f20. All 349 existing cases passed first.
+- Codex added AppointmentService with constructor-injected manager, calendar
+  client, strategy and explicit working hours. Fetching, pure snapshot calculation
+  and snapshot-based booking are separate. Booking reuses M2 availability and
+  the manager registration path, with no alternate-time selection or fallback.
+- WaitingRequest was added with validated, read-only fields. Existing appointment
+  duration validation and manager membership checks were extracted into shared
+  helpers so the service/model reuse them; the original regression expectations
+  were not changed. A per-doctor deque tracks unique pending requests locally.
+- The explicit M5 policies came from Shon's implementation request: scheduled-only
+  cancellation; valid cancellation survives read failure with deferred backfill;
+  replacements start at the original start, fit the freed interval and fit the
+  request window. The service preserves skipped FIFO order and removes only a
+  successfully registered request, creating at most one distinct replacement.
+- Final verification passed 434 cases (85 new M5 cases), 63 unittest subtests,
+  the separate 19-case lecturer suite, the original demo and git diff --check.
+  Execution used Python 3.14.0 and pytest 9.2.0; 29 files passed Python 3.11 syntax
+  parsing. A complete offline test uses the real JSON client and preserved source
+  data; malformed tmp_path JSON also verifies safe deferred cancellation.
+- The service interfaces for Yotam's pure calculation and Tufik's later protected
+  booking are documented without implementing their modules or an M6 handoff.
+  No M6 demo, Lock, coordinator, threads, asyncio, persistence or Google writes
+  were added. Real Google verification remains pending configuration; automated
+  tests and milestone publication are not provider evidence.
+
+## 9. Authorized Stage 2 Git identity correction
+
+On 2026-10-30, Shon explicitly approved correcting the author and committer of
+his seven published Stage 2 commits to ZebrikDev, using the email associated
+with his earlier GitHub commits. Codex performed the metadata correction after
+creating a local backup branch and verifying a Git bundle. Each replacement
+retains the original complete file tree, message and both timestamps; only the
+identities and resulting parent/commit hashes change. The genuine M3 TDD states
+and their order are preserved. Source code, tests, data and Stage 1 history are
+unchanged. README references are repaired in a separate documentation commit.
+The [correction record](docs/git-author-correction.md) maps original historical
+hashes retained in this log to the current hashes. The approved publication uses
+an explicit force-with-lease for stage-2-development only. This attribution
+correction does not alter the AI-assistance records or establish live API proof.
+
+## 10. Authorized M6 offline demonstration and proposed handoffs
+
+Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
+
+- Shon supplied the actual M6 implementation prompt after M5 review, authorizing
+  only the offline demonstration, live-entry-point documentation, teammate
+  handoff documents, focused checks and normal commit/push. This is the actual
+  M6 planning/implementation instruction, not a reconstructed Stage 1 prompt.
+- The prompt expected the original M5 hash ad68d8e. Inspection instead found
+  clean local/remote HEAD `846d2199c30bb4c3d89dd3c8161521cda64223db` after the
+  separately authorized Git identity correction. Codex verified that only
+  identity/TDD documentation differed in the resulting files; Shon explicitly
+  confirmed continuing from that current HEAD. The reviewed M5 implementation,
+  existing tests, source dataset and genuine M3 Red evidence were preserved.
+- Codex added demo_data.py to prepare fresh offline inputs through the actual
+  Factory/JSON client, with explicit 2026-10-29 working hours and preloaded
+  simulated snapshots for three registered doctors. demo_stage2.py composes the
+  existing service and both strategies; main.py retains its 15 Stage 1 sections
+  and appends the separate Stage 2 presentation. No scheduling/service rules
+  were changed. The data and scenario orchestration were AI-assisted; existing
+  synthetic source files were reused without modification.
+- The demo shows external blocking, different strategy choices, explicit booking
+  rejection/success, FIFO skip order, distinct replacement/history, subsequent
+  eligibility after a patient conflict is cancelled, and deferred backfill in a
+  fresh clinic with an explicitly injected DemonstrationFailureClient. That
+  failure is a controlled test dependency, not an observed Google outage.
+- English M7/M8 handoffs record exact existing interfaces, prepared inputs,
+  expected results and acceptance criteria. Ownership remains Shon's proposed
+  division pending coordination; no teammate agreement/work is claimed. No
+  coroutine, threading algorithm, coordinator or Lock implementation was added.
+- Live setup documentation follows the existing verify_calendar command and
+  official Google public-calendar/API-key instructions. It describes a later
+  read-only availability check, not a complete live booking workflow. Codex did
+  not create resources, change sharing, obtain secrets or run a live request.
+- Verification used Python 3.14.0 and pytest 9.2.0: 438 cases and 63 subtests
+  passed, including four new meaningful demo checks; all 19 lecturer-feedback
+  unittests passed separately. The combined demo, git diff --check and dependency
+  check passed. All 32 Python files passed Python 3.11 AST parsing; no separate
+  Python 3.11 execution is claimed. The default-demo test removes live settings
+  and blocks HTTP/.env loading, checks simulated labels and unchanged source
+  files. Real Google verification and M7/M8/M9 remain pending.
+
+## 11. M7: Yotam's contributor-supplied record
+
+Transferred faithfully from docs/m7-async.md at reviewed commit `87d61d4fe9a53a7abd27521db965615a575271d2` during M9. The text below records that contributor's historical checkpoint; Shon's M9 instruction subsequently reports Technical Lead approval. Tool/model attribution is the contributor's supplied record.
+
+
+- Tool: Claude Code (Anthropic, model Claude Opus 5.5), used by Yotam on 2026-11-02.
+- Yotam supplied the M7 task prompt (scope, function names, test and delivery
+  requirements). The assistant read `docs/handoff-m7-yotam.md`, the README Stage 2
+  sections, `services.py`, `demo_data.py`, `demo_stage2.py` and existing tests.
+- The assistant made a fresh clone under Yotam's Git identity, created the branch,
+  wrote `async_processing.py`, `demo_async.py`, the M7 tests and this document,
+  diagnosed both Windows findings, ran the deliberate-fault checks and all
+  verification commands above, then committed and pushed this branch for a pull
+  request to `stage-2-development` (left unmerged).
+- Design choices made with AI assistance: delays as a dict keyed by doctor ID
+  (matching `snapshots`), `gather(..., return_exceptions=True)` followed by raising
+  the first input-order error, and the module-scoped event-loop fixture.
+- Review follow-up: Yotam relayed the Technical Lead's three corrections. The
+  assistant implemented the non-finite delay check, the regression tests and the
+  demo wording, ran the new tests against the reviewed code to confirm they catch
+  the defect, updated this document and created a normal follow-up commit.
+- Pending: Technical Lead review of the follow-up. No teammate agreement is claimed.
+
+## 12. M8: Tufik's contributor-supplied record
+
+Transferred faithfully from docs/m8-threading.md at reviewed commit `380f003b513088aadc3096a8235dc8238ca91eb4` during M9. The text below records that contributor's historical checkpoint; Shon's M9 instruction subsequently reports Technical Lead approval. Tool/model attribution is the contributor's supplied record.
+
+
+Claude (Anthropic) was used to read the M8 handoff and `AppointmentService`,
+draft the coordinator, demo, tests and this document, and run the checks above.
+Tufik reviewed the code and is responsible for understanding and presenting it.
+
+## 13. Stage 2: M9 integration and submission preparation
+
+Tool: Codex, used by Shon on 2026-11-02 after reported Technical Lead review of
+M7 (including corrections) and M8. This entry records work in this run; it does
+not replace the contributors' supplied records above or rewrite Stage 1 history.
+
+- Shon authorized normal M7/M8 merge commits, focused integration/docs commits,
+  normal pushes to stage-2-development, an unmerged final PR and read-only live
+  verification with existing synthetic-calendar configuration. Main release,
+  history rewriting and resource/calendar creation were not authorized.
+- Codex read the cached assignment, architecture, existing documentation,
+  handoffs and contributor modules/tests. Remote refs matched the supplied
+  reviewed SHAs. A recoverable branch/bundle and copies/hashes of unrelated
+  untracked handoff files were created before conflict-free normal merges.
+  Contributor commit attribution and TDD states were preserved.
+- Codex composed the existing M7/M8 entry points in main.py with fresh clinics;
+  the two-thread experiment still uses the single shared coordinator. It did
+  not duplicate either algorithm or alter the reviewed business rules. Existing
+  Stage 1 sections, datasets and service contracts were retained.
+- The Windows tzdata marker and explicit package metadata make the documented
+  .[test] installation include platform requirements. Combined-demo tests reuse
+  M7's initialized Runner approach before the per-test guard; isolation remains
+  active, and a direct outbound attempt is rejected. Two focused checks were
+  added and the existing combined-main check extended without weakening results.
+- README was reorganized into the assignment's five Stage 2 parts; Stage 1 text
+  remains verbatim. The M7/M8 assistance sections were moved faithfully above,
+  preserving supplied contributor/tool/model attribution and historical pending
+  statements. Milestone documents keep technical explanations and central links.
+- Verification: 476 merged baseline cases; 478 integrated cases and 63 subtests
+  passed, plus 19 lecturer tests separately, combined and explicit demos,
+  dependency consistency and diff checks. Actual runtime was macOS 26.6.2 arm64,
+  Python 3.14.0, pytest 9.2.0. All 37 Python files passed 3.11 syntax parsing;
+  no new Windows or Python 3.11 execution is claimed. A committed-tree ZIP trial
+  installed in a fresh isolated environment and passed all tests/main/pip check;
+  the final review package records its exact committed source and fresh checks.
+- Real Google verification is still pending: the actual explicit command exited
+  1 at missing GOOGLE_CALENDAR_API_KEY, before HTTP. .env and mapping are absent.
+  Shon was asked to configure locally and confirm a known synthetic event/window;
+  no secret, calendar ID or provider response was invented. No resources or public
+  visibility were changed. M9 is not claimed complete or submission-ready.
+
+## 14. M9 follow-up: real Google evidence and final review package
+
+Tool: Codex, used by Shon on 2026-11-02. This follow-up supersedes the pending
+provider status at the initial M9 checkpoint in section 13, preserving that
+historical failed attempt and the contributor records unchanged.
+
+- Shon reported completed local setup of the restricted key and D001 mapping for
+  the dedicated public synthetic calendar and provided the actual successful
+  verification log. Codex read and retained that evidence without modifying it.
+- Using the existing explicit verification command and actual Google client,
+  Codex reproduced the authorized read-only availability check: source=live,
+  normalized 2026-10-29 10:00–10:30 Asia/Jerusalem busy time, five blocked slots,
+  six available slots and exit 0. Every slot was checked against independently
+  specified expected intervals. Runtime: macOS 26.6.2 arm64, Python 3.14.0.
+- Codex updated current README/checklist/live/M9 status and committed only safe
+  command/output/runtime evidence. No client, model, algorithm, business rule or
+  test expectation was changed. Historical pending statements remain historical;
+  the final Technical Lead approval and main release/download check remain open.
+- .env stays local and ignored. Output was checked against the actual key and
+  authenticated-URL patterns before saving; no secret or full request URL was
+  printed or committed. Codex did not create resources, alter sharing, perform
+  event writes or migrate authentication in this follow-up.
+- The remaining offline checks and exact-commit clean-install ZIP are rerun for
+  the updated review commit. They remain separate from the real-provider evidence.
+  The final PR is updated for review and left unmerged; main is unchanged.
