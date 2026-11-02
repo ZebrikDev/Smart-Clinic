@@ -7,15 +7,21 @@ file reads, time.sleep, booking or clinic mutation happen inside a coroutine.
 """
 
 import asyncio
+import math
 
 
 def _checked_delays(doctors, delays):
-    """Return one validated delay per doctor, before any coroutine is started."""
+    """Return one validated delay per doctor, before any coroutine is started.
+
+    A delay must be a finite, non-negative int or float (zero is valid). bool,
+    infinity and NaN are rejected; NaN would otherwise pass the `< 0` check.
+    """
     checked = []
     for doctor in doctors:
         delay = delays.get(doctor.id)
-        if isinstance(delay, bool) or not isinstance(delay, (int, float)) or delay < 0:
-            raise ValueError(f"Doctor {doctor.id} needs a non-negative simulated delay in seconds.")
+        if (isinstance(delay, bool) or not isinstance(delay, (int, float))
+                or (isinstance(delay, float) and not math.isfinite(delay)) or delay < 0):
+            raise ValueError(f"Doctor {doctor.id} needs a finite, non-negative simulated delay in seconds.")
         checked.append(delay)
     return checked
 

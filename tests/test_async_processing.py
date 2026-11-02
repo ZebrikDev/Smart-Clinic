@@ -183,19 +183,41 @@ def test_concurrent_failure_raises_first_input_error_and_leaves_no_running_tasks
     assert calls == ["D002", "D003", "D001"]
 
 
+def spy_sleep(monkeypatch):
+    """Record requested delays and return at once: nothing ever really waits."""
+    requested = []
+
+    async def recording_sleep(delay):
+        requested.append(delay)
+
+    monkeypatch.setattr(asyncio, "sleep", recording_sleep)
+    return requested
+
+
 @pytest.mark.parametrize("collector", COLLECTORS)
-@pytest.mark.parametrize("delays", [
-    {"D001": 0.01, "D002": 0.01},
-    {"D001": 0.01, "D002": -0.01, "D003": 0.01},
-    {"D001": 0.01, "D002": True, "D003": 0.01},
-    {"D001": 0.01, "D002": "0.01", "D003": 0.01},
-])
-def test_invalid_delays_are_rejected_before_any_doctor_starts(run, inputs, monkeypatch, collector, delays):
+@pytest.mark.parametrize("invalid", [
+    None, -0.01, -1, True, "0.01", float("inf"), float("-inf"), float("nan"),
+], ids=["missing", "negative-float", "negative-int", "bool", "string", "inf", "-inf", "nan"])
+def test_invalid_delays_are_rejected_before_any_sleep_or_calculation(run, inputs, monkeypatch, collector, invalid):
     service, *_ = inputs
     calls = spy_calculation(monkeypatch, service)
-    with pytest.raises(ValueError, match="non-negative simulated delay"):
+    sleeps = spy_sleep(monkeypatch)
+    # Only the last doctor's delay is invalid, so earlier valid doctors must not start either.
+    delays = {"D001": 0.01, "D002": 0.01, "D003": invalid}
+    if invalid is None:
+        del delays["D003"]
+    with pytest.raises(ValueError, match="finite, non-negative simulated delay"):
         collect(run, collector, inputs, delays=delays)
-    assert calls == []
+    assert sleeps == [] and calls == []
+
+
+@pytest.mark.parametrize("collector", COLLECTORS)
+def test_zero_and_ordinary_int_or_float_delays_remain_valid(run, inputs, monkeypatch, collector):
+    sleeps = spy_sleep(monkeypatch)
+    delays = {"D001": 0, "D002": 0.0, "D003": 2}
+    results = collect(run, collector, inputs, delays=delays)
+    assert sleeps == [0, 0.0, 2]  # requested, not waited: the spy returns at once
+    assert [(doctor_id, len(slots)) for doctor_id, slots in results] == [("D001", 6), ("D002", 11), ("D003", 0)]
 
 
 @pytest.mark.parametrize("collector", COLLECTORS)
@@ -223,6 +245,7 @@ def test_m7_demo_compares_both_versions_on_the_same_inputs_without_http(run, mon
     assert [len(slots) for _, slots in result["concurrent"]] == [6, 11, 0]
     assert result["sequential_seconds"] > 0 and result["concurrent_seconds"] > 0
     assert "Same complete results, in input order: True" in output
-    assert "D003: 0 slots; starts none (valid empty calendar result)" in output
+    assert "D003: 0 slots; starts none (no available slots)" in output
+    assert "empty calendar" not in output
     assert "Sequential: " in output and "Concurrent: " in output
     http.assert_not_called()

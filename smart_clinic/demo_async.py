@@ -36,7 +36,7 @@ def run_m7_demo(delays=DEMO_DELAYS, run=asyncio.run):
     concurrent, concurrent_seconds = timed(run, collect_concurrent(*inputs))
 
     for doctor_id, slots in concurrent:
-        starts = ", ".join(f"{start:%H:%M}" for start, _ in slots) or "none (valid empty calendar result)"
+        starts = ", ".join(f"{start:%H:%M}" for start, _ in slots) or "none (no available slots)"
         print(f"{doctor_id}: {len(slots)} slots; starts {starts}")
     print(f"Same complete results, in input order: {sequential == concurrent}")
     print(f"Sequential: {sequential_seconds:.3f}s (delays add up)")
