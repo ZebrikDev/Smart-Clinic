@@ -191,8 +191,10 @@ cancelled appointment from a FIFO waiting list. This reduces conflicting
 appointments while keeping cancellation usable during provider failure.
 
 M1–M6 scheduling and demonstrations, Yotam's reviewed M7 collectors and Tufik's
-reviewed M8 coordinator are integrated. **M9 is not submission-ready:** real
-Google evidence is pending configuration, followed by final Technical Lead review.
+reviewed M8 coordinator are integrated. **M9 implementation and verification are
+complete for final Technical Lead review**, including a real Google availability
+decision. Approval of the final commit, merge to main and the actual GitHub main
+download check remain pending; no release approval is implied.
 The project has three students; the four-person subsystem requirements do not apply.
 
 ### 2. Installation and offline/live/test commands
@@ -348,12 +350,17 @@ hours 09:00–12:00, external busy 10:00–10:30, free patient, no other local a
 | 09:15–09:45 | Allow when other constraints permit | Architecture/planning agent |
 | 10:45–11:15 | Allow when other constraints permit | Architecture/planning agent |
 
-**Real Google evidence: pending.** The local .env is absent and the API key is
-missing. The explicit command exits safely in configuration before HTTP; no live
-response, event or decision is invented. Configure the dedicated synthetic calendar
-locally using the guide, then record source=live, the known busy interval and its
-blocked/available decision. Offline/mock output and Git publication do not satisfy
-that requirement. M9 remains incomplete until this evidence and final review pass.
+**Real Google evidence: verified on 2026-11-02.** Shon supplied the successful
+setup log; a read-only rerun through the existing GoogleCalendarClient and explicit
+command independently reproduced it on macOS 26.6.2 arm64 / Python 3.14.0:
+`source=live`, D001 window 2026-10-29 09:00–12:00 Asia/Jerusalem, normalized busy
+time 10:00–10:30, **5 blocked / 6 available slots**, exit **0**. The event rejects
+both of Shon's requests above and permits the two architecture boundaries.
+[Actual command/output/runtime](docs/evidence/google-calendar-live.txt) records
+all slot endpoints without secrets or authenticated URLs. The previous missing-key
+attempt remains historical in [M9 evidence](docs/m9-verification.md). This is live
+availability verification, not a complete live booking workflow or a transaction
+against Google. The default demo and automated tests remain offline.
 
 ClosestToRequestedStrategy has a genuine Git Red/Green/Refactor sequence:
 

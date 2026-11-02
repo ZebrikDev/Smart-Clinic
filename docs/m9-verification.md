@@ -1,8 +1,9 @@
-# M9 verification — real-provider evidence pending
+# M9 verification — complete for final review
 
-Date: 2026-11-02. Offline integration is verified. **M9 is not complete or
-submission-ready** until real Google evidence and final Technical Lead review.
-The final PR stays unmerged; release/main download verification is a later gate.
+Date: 2026-11-02. Offline integration and real Google availability verification
+are complete for final Technical Lead review. The final PR stays unmerged;
+approval of the final commit, release merge and actual GitHub main download
+verification remain later gates. This does not assert release/submission approval.
 
 ## Reviewed history
 
@@ -78,21 +79,43 @@ file hashes and actual fresh-environment logs; no circular self-hash is embedded
 in this source document. Secrets, environments, caches, unrelated untracked files
 and review backups are excluded. This is not the final GitHub main download.
 
-## Actual explicit live command and precise blocker
+## Actual explicit live command and result
 
 ```bash
 python -m smart_clinic.verify_calendar --doctor-id D001 \
   --start 2026-10-29T09:00:00 --end 2026-10-29T12:00:00
 ```
 
-Executed in the macOS/Python environment above; **exit 1**, safe output:
-`Live mode requires GOOGLE_CALENDAR_API_KEY.` Local .env, API key and doctor/calendar
-mapping are absent. Configuration stops before GET: there is **no source=live
-response, normalized live busy interval or live slot decision**. Calendar
-existence/visibility and Calendar API enablement were not verified or changed.
+The initial M9 attempt exited **1**, before HTTP, with
+`Live mode requires GOOGLE_CALENDAR_API_KEY.` That was the configuration state
+at the first review checkpoint, not the current result.
 
-Shon must configure secrets locally using [the live guide](live-verification.md)
-and confirm a known synthetic event/window. Do not send keys in chat. Then use
-the existing Google client/command to record source=live, normalized busy time,
-blocked/available slots and exit status. Mock output and successful Git publication
-do not close this required gap. A snapshot/Lock cannot prevent external Google edits.
+Shon subsequently configured the restricted key and D001 mapping locally for the
+dedicated public synthetic calendar and supplied a successful actual-run log.
+The implementation agent read that evidence and reproduced the command read-only
+through the existing GoogleCalendarClient, without mocks or changes to client rules.
+The rerun used **macOS 26.6.2 arm64, CPython 3.14.0** and exited **0**:
+
+- `source=live`.
+- Clinic-local window: 2026-10-29 09:00–12:00, Asia/Jerusalem; existing query padding
+  covers 08:45–12:15. Timestamp normalization follows the reviewed boundary.
+- Actual normalized busy interval: **2026-10-29 10:00–10:30**.
+- Five blocked 30-minute starts: **09:30, 09:45, 10:00, 10:15, 10:30**.
+- Six available 30-minute starts: **09:00, 09:15, 10:45, 11:00, 11:15, 11:30**.
+
+Every interval was checked against independent expected outcomes. Both of Shon's
+original rejection cases hold; the architecture's 09:15 and 10:45 boundaries remain
+available. This demonstrates the actual external event changing the business
+decision from 11 candidates to 6 available slots, beyond merely printing an event.
+
+[The actual command/output/runtime](evidence/google-calendar-live.txt) contains all
+endpoints, with no key, calendar ID or authenticated URL. The provided setup log
+is preserved unchanged in the external review package. Local .env is ignored and
+not tracked. No configuration secret, resource creation, sharing change, Google
+write or OAuth migration was performed by this documentation follow-up.
+
+The command calculates availability with explicit working hours and a free
+verification patient. It does not execute a complete live booking/waiting-list
+workflow. Automated tests and the default demo stay offline. A snapshot/Lock
+cannot prevent external Google edits. Final Technical Lead approval and release
+remain pending, even though the provider-evidence blocker is now resolved.

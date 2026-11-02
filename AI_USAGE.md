@@ -381,3 +381,29 @@ not replace the contributors' supplied records above or rewrite Stage 1 history.
   Shon was asked to configure locally and confirm a known synthetic event/window;
   no secret, calendar ID or provider response was invented. No resources or public
   visibility were changed. M9 is not claimed complete or submission-ready.
+
+## 14. M9 follow-up: real Google evidence and final review package
+
+Tool: Codex, used by Shon on 2026-11-02. This follow-up supersedes the pending
+provider status at the initial M9 checkpoint in section 13, preserving that
+historical failed attempt and the contributor records unchanged.
+
+- Shon reported completed local setup of the restricted key and D001 mapping for
+  the dedicated public synthetic calendar and provided the actual successful
+  verification log. Codex read and retained that evidence without modifying it.
+- Using the existing explicit verification command and actual Google client,
+  Codex reproduced the authorized read-only availability check: source=live,
+  normalized 2026-10-29 10:00–10:30 Asia/Jerusalem busy time, five blocked slots,
+  six available slots and exit 0. Every slot was checked against independently
+  specified expected intervals. Runtime: macOS 26.6.2 arm64, Python 3.14.0.
+- Codex updated current README/checklist/live/M9 status and committed only safe
+  command/output/runtime evidence. No client, model, algorithm, business rule or
+  test expectation was changed. Historical pending statements remain historical;
+  the final Technical Lead approval and main release/download check remain open.
+- .env stays local and ignored. Output was checked against the actual key and
+  authenticated-URL patterns before saving; no secret or full request URL was
+  printed or committed. Codex did not create resources, alter sharing, perform
+  event writes or migrate authentication in this follow-up.
+- The remaining offline checks and exact-commit clean-install ZIP are rerun for
+  the updated review commit. They remain separate from the real-provider evidence.
+  The final PR is updated for review and left unmerged; main is unchanged.

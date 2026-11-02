@@ -1,12 +1,13 @@
-# Explicit live availability verification — pending
+# Explicit live availability verification — verified
 
-No real Google call was run in M6 or the M9 attempt with missing configuration.
-The Google implementation and mocked tests
-are complete; real-provider verification still requires configuration. These
-instructions are for a later, explicitly requested human setup and run. M6 did
-not create resources, change calendar visibility or obtain credentials.
-M9 authorizes read-only verification after local setup; its recorded attempt
-stopped before HTTP because the API key was missing. See [M9 evidence](m9-verification.md).
+Real-provider availability verification succeeded on 2026-11-02 after Shon's
+local setup. The supplied evidence and a read-only rerun through the existing
+command show source=live, busy time 2026-10-29 10:00–10:30 Asia/Jerusalem,
+five blocked slots, six available slots and exit 0. See
+[actual evidence](evidence/google-calendar-live.txt) and [M9 results](m9-verification.md).
+The earlier missing-key attempt remains a historical checkpoint. The instructions
+below describe setup/reproduction; they do not authorize additional resources or
+sharing changes. The default application and automated tests remain offline.
 
 ## Setup for the existing command
 
