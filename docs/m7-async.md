@@ -1,9 +1,13 @@
 # M7 — Sequential vs concurrent availability with asyncio (Yotam)
 
+M9 integration note (2026-11-02): the reviewed implementation is merged and its
+existing demonstration is now called from main.py. Verification below records
+the original milestone checkpoint, not a new run on the contributor's platform.
+
 M7 adds an asyncio comparison on top of the reviewed M6 inputs. It is offline
 and simulated: delays come from `asyncio.sleep`, not from a calendar provider.
-The shared `main.py` demonstration is unchanged; final integration and timing
-comparison in the combined demo belong to M9. M8 (threading) is not part of this work.
+At the original M7 checkpoint, the shared `main.py` demonstration was unchanged;
+M9 now invokes the existing timing comparison. M8 (threading) is not part of this work.
 
 Starting point: `stage-2-development` at reviewed M6 commit
 `722244c09062d515501e2c2c404b3974c8a4c393` (verified to be the branch tip when
@@ -70,7 +74,7 @@ concurrent = asyncio.run(collect_concurrent(*args))
 assert sequential == concurrent  # [("D001", 6 slots), ("D002", 11 slots), ("D003", [])]
 ```
 
-Demo (explicitly invoked, not part of `main.py`):
+Demo (also part of main.py after M9 integration):
 
 ```bash
 .venv/bin/python -m smart_clinic.demo_async      # Windows: .venv\Scripts\python
@@ -228,22 +232,9 @@ plus overhead. These are observations on one machine, not guarantees.
 - README and AI_USAGE.md were not edited to avoid conflicts with parallel M8/M9
   work; this document is the M7 record to fold in during M9.
 
-## AI assistance (actual)
 
-- Tool: Claude Code (Anthropic, model Claude Opus 5.5), used by Yotam on 2026-11-02.
-- Yotam supplied the M7 task prompt (scope, function names, test and delivery
-  requirements). The assistant read `docs/handoff-m7-yotam.md`, the README Stage 2
-  sections, `services.py`, `demo_data.py`, `demo_stage2.py` and existing tests.
-- The assistant made a fresh clone under Yotam's Git identity, created the branch,
-  wrote `async_processing.py`, `demo_async.py`, the M7 tests and this document,
-  diagnosed both Windows findings, ran the deliberate-fault checks and all
-  verification commands above, then committed and pushed this branch for a pull
-  request to `stage-2-development` (left unmerged).
-- Design choices made with AI assistance: delays as a dict keyed by doctor ID
-  (matching `snapshots`), `gather(..., return_exceptions=True)` followed by raising
-  the first input-order error, and the module-scoped event-loop fixture.
-- Review follow-up: Yotam relayed the Technical Lead's three corrections. The
-  assistant implemented the non-finite delay check, the regression tests and the
-  demo wording, ran the new tests against the reviewed code to confirm they catch
-  the defect, updated this document and created a normal follow-up commit.
-- Pending: Technical Lead review of the follow-up. No teammate agreement is claimed.
+M9 resolves the Windows installation finding with the conditional tzdata
+dependency in pyproject.toml. The combined-demo tests inject the same style of
+pre-initialized module-scoped Runner, preserving the active per-test network guard.
+
+AI-use documentation is centralized in [AI_USAGE.md](../AI_USAGE.md#11-m7-yotams-contributor-supplied-record).

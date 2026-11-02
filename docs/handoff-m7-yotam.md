@@ -1,5 +1,10 @@
 # Proposed M7 handoff — Yotam
 
+Historical M6 handoff (2026-10-30). The reviewed M7/M8 implementations have now
+been merged during M9; see m7-async.md, m8-threading.md and m9-verification.md
+for current interfaces/status. The proposed-division wording below records the
+original handoff, not a claim about later coordination.
+
 This is Shon's proposed division, pending coordination. It does not record
 Yotam's agreement or contribution. Implement M7 only after coordination; this
 document supplies interfaces and acceptance criteria, not an asyncio solution.
@@ -17,7 +22,7 @@ From the repository root, using Python 3.11 or newer:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install 'requests>=2.32,<3' 'python-dotenv>=1,<2' 'pytest>=8,<10'
+.venv/bin/python -m pip install ".[test]"
 .venv/bin/python -m pytest -p no:cacheprovider -q
 .venv/bin/python -m unittest discover -s tests -p test_lecturer_feedback.py -v
 .venv/bin/python main.py

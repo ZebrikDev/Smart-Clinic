@@ -1,5 +1,9 @@
 # M8 — Thread-safe booking (Tufik)
 
+M9 integration note (2026-11-02): the reviewed implementation is merged and its
+existing demonstration is now called from main.py. Verification below records
+the original milestone checkpoint, not a new run on the contributor's platform.
+
 Starting point: `stage-2-development` at reviewed M6 commit
 `722244c09062d515501e2c2c404b3974c8a4c393`. Feature branch: `m8-tufik-threading`.
 The existing `AppointmentService` interfaces and scheduling rules are unchanged.
@@ -49,8 +53,7 @@ demonstrate_booking_race()
   them before joining any, and returns `("booked", appointment)` or
   `("rejected", error)` per request, in input order. Any other exception is a
   bug, not a conflict: it is raised as `RuntimeError` after all joins.
-- `demonstrate_booking_race()` — the explicitly invoked M8 demo (not yet in
-  `main.py`; that integration is M9).
+- `demonstrate_booking_race()` — the M8 demo, also invoked by main.py after M9 integration.
 
 All concurrent writers in this experiment must use the **same** coordinator,
 service, manager and Lock. `book` and `cancel` are orchestration paths that can
@@ -111,8 +114,4 @@ with Python 3.11 grammar).
 | `python -m smart_clinic.threaded_processing` | 1 approved, 1 rejected, 7 → 8 appointments |
 | `git diff --check` | clean |
 
-## AI assistance
-
-Claude (Anthropic) was used to read the M8 handoff and `AppointmentService`,
-draft the coordinator, demo, tests and this document, and run the checks above.
-Tufik reviewed the code and is responsible for understanding and presenting it.
+AI-use documentation is centralized in [AI_USAGE.md](../AI_USAGE.md#12-m8-tufiks-contributor-supplied-record).

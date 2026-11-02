@@ -1,9 +1,12 @@
 # Explicit live availability verification — pending
 
-No real Google call was run in M6. The Google implementation and mocked tests
+No real Google call was run in M6 or the M9 attempt with missing configuration.
+The Google implementation and mocked tests
 are complete; real-provider verification still requires configuration. These
 instructions are for a later, explicitly requested human setup and run. M6 did
 not create resources, change calendar visibility or obtain credentials.
+M9 authorizes read-only verification after local setup; its recorded attempt
+stopped before HTTP because the API key was missing. See [M9 evidence](m9-verification.md).
 
 ## Setup for the existing command
 

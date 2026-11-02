@@ -182,425 +182,194 @@ These checks cover status encapsulation, clinic membership, scheduling rules, an
 
 ## Stage 2
 
-### What has been added
+### 1. Business extension and value
 
-M1 extends the local model with appointment durations, a computed end time,
-the terminal `no_show` status, and a 15-minute minimum gap for both doctors
-and patients. M2 adds pure slot generation and availability filtering using a
-complete synthetic calendar snapshot, explicit doctor working hours and current
-local appointments. M3 adds two selection strategies for those already-valid
-slots: earliest start or closest start to a preference, with an earlier start
-breaking equal-distance ties. M4 adds a read-only GoogleCalendarClient, bounded
-Retry, a Simple Factory and explicit live configuration/verification. M5 adds
-AppointmentService for availability, suggestions, explicit booking and FIFO
-waiting-list backfill after cancellation. M6 composes those completed capabilities
-in an offline business demonstration and documents the proposed teammate handoffs.
-M7/M8 concurrency and the M9 integration of those modules remain pending.
+The clinic now combines a doctor's external Google Calendar busy periods with
+explicit local working hours and active doctor/patient appointments. It can offer
+valid slots, select earliest or closest to a preference, book locally, and fill a
+cancelled appointment from a FIFO waiting list. This reduces conflicting
+appointments while keeping cancellation usable during provider failure.
 
-### How to run
+M1–M6 scheduling and demonstrations, Yotam's reviewed M7 collectors and Tufik's
+reviewed M8 coordinator are integrated. **M9 is not submission-ready:** real
+Google evidence is pending configuration, followed by final Technical Lead review.
+The project has three students; the four-person subsystem requirements do not apply.
 
-Python 3.11 or newer is required. The current demonstration has no network,
-API key or environment-variable requirements. Install the runtime and test
-dependencies declared in pyproject.toml inside an isolated virtual environment:
+### 2. Installation and offline/live/test commands
+
+Use Python 3.11 or newer from the extracted source/project root. Create and
+activate an isolated environment:
 
 ```bash
+# macOS / Linux
 python3 -m venv .venv
-.venv/bin/python -m pip install 'requests>=2.32,<3' 'python-dotenv>=1,<2' 'pytest>=8,<10'
-.venv/bin/python main.py
-.venv/bin/python -m pytest -p no:cacheprovider -q
-.venv/bin/python -m unittest discover -s tests -p test_lecturer_feedback.py -v
+source .venv/bin/activate
 ```
 
-The `test` extra declares pytest; runtime dependencies are requests and
-python-dotenv. Offline mode does not load .env or require any credentials.
+```powershell
+# Windows PowerShell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
 
-### Offline demonstration outcomes
-
-`python main.py` (with the installed environment active) requires no live
-configuration and does not load .env. It preserves the original 15 sections,
-then prints a separate `Stage 2: offline scheduling demonstration (simulated)`.
-The new presentation module calls the actual Factory, JSON client, both
-strategies and AppointmentService; it does not implement scheduling rules.
-
-| Step on fixed date 2026-10-29 | Expected result |
-|---|---|
-| D001 works 09:00-12:00; synthetic external event 10:00-10:30 | 11 candidates become 6 available slots after the 15-minute gap rule |
-| Same valid slots, preference 11:00 | Earliest selects 09:00-09:30; closest selects 11:00-11:30; neither books |
-| Explicit booking 09:30-10:00 | Rejected for insufficient external gap, with no booking |
-| Explicit booking 10:45-11:15 | DEMO-ORIGINAL is registered locally |
-| FIFO WAIT-FIRST, WAIT-SECOND, WAIT-THIRD; first patient's D002 appointment conflicts | Cancellation fills WAIT-SECOND; WAIT-FIRST remains ahead of WAIT-THIRD |
-| Original and replacement records | Original remains cancelled; replacement has a distinct new ID |
-| Remove the other-doctor patient conflict and cancel the replacement | WAIT-FIRST now fills the slot, proving temporary ineligibility did not lose its position |
-| Separate fresh clinic with injected DemonstrationFailureClient | Cancellation remains cancelled, backfill is deferred, no replacement, queue preserved |
-
-Every successful calendar result in this demo is `simulated`. The last step
-explicitly identifies the injected test client and never makes an HTTP request.
-All changes are in fresh in-memory clinics; both source data files stay unchanged.
-
-### Explicit live availability verification (still pending)
-
-Follow [the live setup and verification guide](docs/live-verification.md) for
-the dedicated public synthetic calendar, API enablement, API key, doctor/calendar
-mapping and a known event/window. Those account resources are not created by
-the code. Do not put real medical data in a public calendar or paste keys in chat.
-
-Minimal explicit read-only verification (edit dates to match the synthetic events):
+Then, on either platform with that environment active:
 
 ```bash
-.venv/bin/python -m smart_clinic.verify_calendar --doctor-id D001 \
+python -m pip install ".[test]"
+python main.py
+python -m pytest -p no:cacheprovider -q
+python -m unittest discover -s tests -p test_lecturer_feedback.py -v
+python -m smart_clinic.demo_async
+python -m smart_clinic.threaded_processing
+python -m pip check
+git diff --check  # Git checkout only; omit for a source ZIP without .git
+```
+
+If activation is unavailable, replace `python` with `.venv/bin/python` on
+macOS/Linux or `.\.venv\Scripts\python.exe` on Windows. Installation reads
+pyproject.toml: requests, python-dotenv, pytest via the test extra, and **tzdata
+on Windows**. The explicit package configuration makes installation from a
+source ZIP deterministic instead of relying on flat-directory discovery.
+Dependency download requires connectivity; after installation the default demo
+and tests require no network or credentials. Run commands from the source root;
+the data files are source fixtures, not a standalone installed command's data.
+
+Default execution retains the original 15 sections, followed by the Stage 2
+business workflow, M7 timings and M8 contention. Calendars and delays are labelled
+simulated. It never loads .env. Independent demonstrations use fresh clinics;
+the two competing writers share one clinic/service/coordinator/Lock.
+
+The separate, explicitly live command is:
+
+```bash
+python -m smart_clinic.verify_calendar --doctor-id D001 \
   --start 2026-10-29T09:00:00 --end 2026-10-29T12:00:00
 ```
 
-The command uses the supplied window as explicit demo working hours, with a free
-verification patient and no local bookings. It prints source, normalized busy
-intervals, blocked candidates and remaining available slots. A synthetic busy
-event at 10:00-10:30 rejects 09:30-10:00 and 10:00-10:30 through the existing pure
-calculation. A configuration/read failure prints a safe message and exits 1.
-This calculates availability only, not a complete live booking workflow.
-Real Google verification remains pending configuration; no live request was run
-in M6. The default main.py runs entirely offline.
+Follow [live setup instructions](docs/live-verification.md) for a dedicated public
+calendar containing synthetic events only, Calendar API enablement, a locally
+stored API key, `GOOGLE_CALENDAR_MAPPING` JSON and `REQUEST_TIMEOUT`. .env is ignored;
+.env.example contains placeholders only. Never paste keys into chat or log request
+URLs. No calendar/account resource is created by the application. This command
+calculates availability; it does not run a full live booking workflow.
 
-The original `main.py` demonstration is preserved. To inspect M2 availability
-directly, run this separate offline calculation from the project root:
+### 3. Updated code organization
 
-```python
-from datetime import datetime
-from smart_clinic.api_client import JsonCalendarClient
-from smart_clinic.scheduling import calculate_available_slots, padded_search_window
+Stage 1 modules retain the responsibilities documented above. Stage 2 adds:
 
-start = datetime(2026, 10, 29, 9)
-end = datetime(2026, 10, 29, 12)
-client = JsonCalendarClient("data/calendar_responses.json")
-snapshot = client.fetch_busy_intervals("D001", *padded_search_window(start, end))
-slots = calculate_available_slots("D001", "P001", [(start, end)], start, end, snapshot)
-print(snapshot.source)  # simulated
-print(slots)
-```
-
-### Code organization
-
-The Stage 1 modules listed above remain in place. M1-M6 add or extend:
-
-| File | Responsibility |
+| Module / directory | Responsibility |
 |---|---|
-| `smart_clinic/models.py` | Appointment duration/status, WaitingRequest, shared membership checks and local conflicts |
-| `smart_clinic/services.py` | Injected appointment workflow, separate reads/calculation/booking, per-doctor FIFO and cancellation/backfill |
-| `smart_clinic/scheduling.py` | Shared interval-gap rule, candidate generation, padded bounds and read-only availability |
-| `smart_clinic/api_client.py` | Calendar contract, snapshots, shared normalization, JSON/Google clients and safe read failures |
-| `smart_clinic/config.py` | Explicit offline/live environment loading and configuration validation |
-| `smart_clinic/factories.py` | Simple Factory producing JSON or Google clients without constructor IO |
-| `smart_clinic/verify_calendar.py` | Explicit read-only live verification; not the final integrated demo |
-| `smart_clinic/demo_stage2.py` | M6 presentation using actual services plus an explicitly injected failure client |
-| `smart_clinic/demo_data.py` | Fresh offline clinic, explicit working hours and preloaded snapshots for three doctors |
-| `.env.example` | Empty credential/mapping placeholders and example timeout |
-| `smart_clinic/time_utils.py` | Standard-library boundary between external timestamps and clinic-local time |
-| `smart_clinic/strategies.py` | Shared selection contract, earliest and closest alternatives |
-| `data/calendar_responses.json` | Complete synthetic Google-shaped calendars for three independent doctors |
-| `smart_clinic/repository.py` | Optional JSONL `duration_minutes` with validation through the model |
-| `tests/test_lecturer_feedback.py` | Preserved 19 regression checks, extended for `no_show` |
-| `tests/test_models.py` | Durations, constructor compatibility, local conflicts and statuses |
-| `tests/test_scheduling.py` | Symmetric gap boundaries and invalid intervals |
-| `tests/test_repository.py` | Original dataset compatibility and temporary JSONL input checks |
-| `tests/conftest.py` | Temporary synthetic calendar fixture and a test-wide network prohibition |
-| `tests/test_availability.py` | Candidate grid, business boundaries, local conflicts and coverage |
-| `tests/test_api_client.py` | Snapshot validation, file reading and event normalization |
-| `tests/test_time_utils.py` | Offset conversion, all-day dates and date-specific query offsets |
-| `tests/test_strategies.py` | Selection, ties, empty/unsorted input and unchanged input/clinic state |
-| `tests/test_google_calendar_client.py` | Mocked GET, Retry, paging, normalization, error/log sanitization |
-| `tests/test_calendar_config.py` | Offline/live configuration and both Factory products |
-| `tests/test_verify_calendar.py` | Verification command with mocked HTTP and safe failure output |
-| `tests/test_services.py` | Integrated booking, stale local state, FIFO backfill and failure policies |
-| `tests/test_waiting_requests.py` | Request fields, duration/window validity and read-only contract |
-| `tests/test_demo.py` | Combined offline execution, real business outcomes, controlled failure and handoff inputs |
-| `docs/tdd/m3-red.txt` | Actual failure output captured before closest-slot behavior was implemented |
-| `docs/live-verification.md` | Exact later setup/command and expected availability; live evidence remains pending |
-| `docs/handoff-m7-yotam.md` | Proposed M7 inputs, pure service interface and async acceptance criteria |
-| `docs/handoff-m8-tufik.md` | Proposed M8 snapshot/booking interface and shared Lock acceptance criteria |
+| models.py, repository.py | Duration/end time, terminal no_show, exact membership, local gaps, WaitingRequest, compatible JSONL loading |
+| scheduling.py, time_utils.py | Pure grid/availability/gap rules, single padding boundary, timezone conversion |
+| api_client.py | CalendarClient/Snapshot, shared event normalizer, JSON and Google clients, complete pagination and safe Retry/errors |
+| factories.py, config.py | Simple Factory and explicit offline/live configuration |
+| strategies.py | EarliestAvailableStrategy and ClosestToRequestedStrategy |
+| services.py | Injected availability/booking/cancellation/FIFO workflows and snapshot-based local recheck |
+| demo_data.py, demo_stage2.py | Fresh fixed-date inputs and scheduling/failure presentation |
+| async_processing.py, demo_async.py | Yotam's sequential and scheduled/gather collectors plus observed timing demo |
+| threaded_processing.py | Tufik's shared BookingCoordinator and two-thread experiment |
+| verify_calendar.py | Explicit read-only live availability verification |
+| data/ | Original 19-record JSONL and complete synthetic calendars for three doctors |
+| tests/ | Regression, interval/API/Retry/pattern/service/async/Lock and combined-entry-point checks |
+| docs/ | Technical contracts, M7/M8 milestone records, live instructions, TDD output and submission checklist |
 
-### Main design decisions
+### 4. Design decisions
 
-- `Appointment(..., status="scheduled", duration_minutes=30)` preserves the old
-  positional parameters. Duration accepts positive integers, excluding bool.
-  Both `duration_minutes` and `end_at` are read-only properties; duration is set
-  at construction and `end_at` is calculated from the start and duration.
-- JSONL records may include `duration_minutes`. An absent field means 30 minutes;
-  explicit invalid values are rejected with a line number. The original
-  19-record dataset is unchanged, and loading remains entirely local.
-- Datetimes follow the existing clinic-local, naive convention for
-  `Asia/Jerusalem`. External offsets are parsed first, converted with
-  `astimezone(ZoneInfo("Asia/Jerusalem"))`, and only then stripped of tzinfo.
-  An offset-free external dateTime requires an explicit endpoint timeZone;
-  ambiguous or nonexistent wall times without an offset are rejected.
-  All-day dates use midnight in the response calendar's timeZone, with an
-  exclusive end. Local calculation inputs must be naive; aware values are
-  rejected before comparisons. Demo working hours avoid clock-change periods.
-  `zoneinfo` is a small standard-library adaptation for this boundary, not a
-  claim about material taught in the slides. It uses the available IANA timezone
-  database. See the [Python zoneinfo documentation](https://docs.python.org/3.11/library/zoneinfo.html).
-- One pure `intervals_conflict` function compares original endpoints in either
-  chronological order. A gap of 14 minutes is rejected; 15 or 16 minutes is
-  accepted. The required total gap is 15 minutes, not double padding.
-- `ClinicManager.schedule_appointment` enforces the rule for active appointments
-  of the same doctor or patient. `register_appointment` delegates to that method.
-  Exact registered-object checks and duplicate-ID rejection are preserved.
-- `no_show` is inactive and terminal, as are `cancelled` and `completed`.
-  A Visit still requires `completed`. Exception rollback keeps the saved status
-  and the original exception, including after a temporary `no_show` transition.
-- `generate_candidate_slots(working_hours, window_start, window_end,
-  duration_minutes=30)` returns sorted, deduplicated `(start, end)` tuples.
-  Each working interval anchors its own 15-minute grid; narrowing the search
-  window does not move that grid. Appointments must finish inside both windows;
-  gaps are checked against other appointments, not treated as extra visit time
-  that must fit in a shift. Explicit empty working hours produce no slots.
-- `calculate_available_slots(doctor_id, patient_id, working_hours, window_start,
-  window_end, snapshot, appointments=(), duration_minutes=30)` calls the shared
-  M1 predicate against external doctor busy periods and relevant active local
-  doctor/patient appointments. It does not rank slots, fetch data, mutate the
-  clinic or check registration for a booking; booking remains a later service's
-  responsibility, with the M1 manager invariants preserved.
-- CalendarSnapshot carries doctor_id, window_start/window_end, sorted normalized
-  busy interval tuples and source (`simulated` or `live`). Availability rejects
-  a wrong doctor or coverage short of the search window plus 15 minutes on each
-  side. `padded_search_window` supplies those caller-side bounds. Clients cover
-  exactly the bounds they receive and never pad again or clip busy endpoints.
-- JsonCalendarClient reads only when `fetch_busy_intervals` is called. The file
-  maps `doctors` to Google-shaped responses with `kind: calendar#events`, an IANA
-  `timeZone` and an explicit `items` list. An empty list is a valid empty calendar;
-  a missing mapping, missing items, bad file or unusable blocking event raises
-  ValueError. The file represents each complete simulated calendar; a remaining
-  page token or unexpanded recurrence is rejected. Every blocking event is
-  validated before selecting events intersecting the requested window.
-- `normalize_calendar_events` is the single reusable normalization path. It
-  supports timed and all-day events, ignores cancelled/transparent events and
-  treats absent transparency as busy. JSON results always say `simulated`.
-  The [Google Event contract](https://developers.google.com/workspace/calendar/api/v3/reference/events)
-  defines these fields; the [events.list contract](https://developers.google.com/workspace/calendar/api/v3/reference/events/list)
-  defines exclusive time bounds and pagination. No requests are sent in M2.
-- `SlotSelectionStrategy.select(slots, preferred_start)` returns one of the
-  supplied valid slots, or None for empty input. EarliestAvailableStrategy uses
-  the earliest start and ignores the preference. ClosestToRequestedStrategy uses
-  `(absolute distance from preferred_start, start)` so equal distances choose
-  the earlier start. Nonempty closest selection requires a clinic-local naive
-  datetime preference, matching the local slot convention. Neither strategy
-  sorts/mutates the input, checks availability, fetches data or books anything.
-  This is the course-style Strategy pattern with a small shared contract;
-  selection remains separate from availability and later service composition.
-- `create_calendar_client(mode, config)` is the second course pattern, a Simple
-  Factory. `offline` creates JsonCalendarClient; `live` creates GoogleCalendarClient.
-  Both implement CalendarClient; unknown modes and invalid configuration are
-  rejected. Configuration is passed in, without a framework or extra pattern.
-  Constructors perform no HTTP or calendar-file reading.
-- GoogleCalendarClient uses requests GET with a URL-encoded calendar path,
-  timeMin/timeMax, timeZone=Asia/Jerusalem, singleEvents=True, showDeleted=False,
-  orderBy=startTime, finite timeout and pageToken when needed. Redirects are not
-  followed. HTTP is checked before JSON. It gathers every page, rejects repeated
-  or malformed tokens and never returns a partial snapshot. A supplied padded
-  window is not gap-padded again. Because Google ignores fractional query seconds,
-  only fractional HTTP bounds are rounded outward to whole seconds; results are
-  filtered back to the exact supplied coverage without clipping event endpoints.
-- The M2 normalizer remains shared and strict. A Google-only adapter accepts
-  omitted items as empty only with kind=calendar#events, a nonempty etag, valid
-  timeZone and no error. Present null/wrong-type items remain errors, and any
-  nextPageToken still requires another page. This follows the documented
-  collection format, Google's [empty-property guidance](https://google.github.io/styleguide/jsoncguide.html#emptynull-property-values),
-  and the [official client Events schema](https://github.com/googleapis/google-api-go-client/blob/main/calendar/v3/calendar-gen.go),
-  which models items with omitempty. This is a documented adapter rule, not a
-  claim that every malformed/missing collection is empty. The M2 JSON format
-  still requires explicit items. Unusable blocking events fail the entire read;
-  insufficient read access and error envelopes are rejected.
-- Each page's GET retries only Timeout or ConnectionError, at most three attempts
-  with a one-second wait between attempts. HTTP (including 401/403/429/503), JSON
-  and validation failures are not retried. CalendarReadError exposes a fixed
-  category (communication/http/json/validation), optional safe reason and integer
-  HTTP status. Logs never include keys, request URLs, raw response bodies or raw
-  requests exceptions; exception chaining is suppressed at the live boundary.
-  A failure never switches to JSON or an empty calendar. Successful Google reads
-  produce source=live; JSON results remain source=simulated.
-- AppointmentService receives the existing manager, client, strategy and a
-  doctor-ID-to-working-intervals dictionary through its constructor. Inputs use
-  exact registered Patient/Doctor objects and clinic-local naive datetimes.
-  Availability reuses the M2 pure calculation; mutation registers through the
-  manager, with shared exact-object membership and M1 conflict checks. Explicit
-  booking accepts only the requested start/duration and never invokes a strategy
-  to silently replace them.
-- WaitingRequest(request_id, patient, doctor, window_start, window_end,
-  duration_minutes=30) has read-only fields, a positive integer duration (not bool)
-  and a positive naive window long enough for that duration. Enqueue validates
-  current registration and unique pending request IDs across all doctor queues,
-  without calendar access. Queues are local deques owned by this service instance.
-- M5 project cancellation policy: only scheduled appointments can be cancelled.
-  Unknown IDs, in_progress and terminal statuses are rejected before calendar IO
-  or mutation. A valid cancellation remains cancelled even if backfill reads fail.
-  With no pending requests, no calendar read is needed. Otherwise a failed or
-  incomplete read defers backfill and preserves the queue; it never creates an
-  empty-calendar fallback.
-- M5 replacement policy: start exactly at the cancelled start, fit entirely within
-  its original freed interval, and fit inside the waiting request's acceptable
-  window. Shorter replacements are allowed; longer ones are skipped. The first
-  currently eligible request is booked after all usual working-hour, grid,
-  external and local checks. Skipped requests retain relative order, other doctor
-  queues are untouched, and at most one replacement is created. The selected
-  request is removed only after successful manager registration. The cancelled
-  appointment stays as history. A monotonic BACKFILL counter checks every proposed
-  ID against existing appointments; IDs are not based on collection length.
-- M6 demonstrates the completed local workflow. M7/M8 concurrency and the final
-  M9 integration remain pending.
+- **External information:** a real requests GET to Google's
+  [events.list](https://developers.google.com/workspace/calendar/api/v3/reference/events/list)
+  reads doctor busy intervals. See the [Event resource](https://developers.google.com/workspace/calendar/api/v3/reference/events)
+  and [credential guide](https://developers.google.com/workspace/guides/create-credentials).
+  Timed/all-day intervals are normalized to naive Asia/Jerusalem clinic time
+  after offset conversion. Recurrence is expanded by Google; all pages must
+  succeed. The caller pads once by 15 minutes and original busy endpoints remain.
+- **Failure:** HTTP is checked before JSON. Only Timeout/ConnectionError retry,
+  at most three GET attempts per page with waits; permanent HTTP, JSON and invalid
+  data do not retry. Unknown/incomplete availability prevents booking; valid local
+  cancellation survives with deferred backfill and its queue intact. No empty or
+  simulated fallback is presented as live. Logs expose safe categories/statuses.
+- **Two patterns:** the Simple Factory creates actual JSON or Google products
+  from mode/config. Strategy selects from already-valid slots: earliest start or
+  closest start, with earlier starts breaking ties. Selection never books.
+- **Dependency injection:** AppointmentService receives manager, client, strategy
+  and explicit hours through its constructor. Tests replace external dependencies
+  where looked up, preserving real calculations. No DI framework or third pattern.
+- **Local rules:** default duration is 30 positive-integer minutes (not bool), with
+  starts on a 15-minute grid anchored to each working interval. Active doctor and
+  patient appointments require one total 15-minute gap in either chronological
+  direction; no_show/cancelled/completed are terminal and inactive. Exact object
+  membership, duplicate IDs, encapsulated status and rollback are preserved.
+  Historical JSONL defaults missing duration to 30 minutes without requiring a calendar.
+- **FIFO:** cancellation is scheduled-only. At most one currently eligible request
+  fills the original start, within its window and freed duration. Skipped requests
+  stay in order; the cancelled record remains history and the replacement gets a
+  distinct ID. See [detailed service contracts](docs/scheduling-contracts.md).
+- **Async tasks:** three independent doctors share preloaded simulated snapshots.
+  Each coroutine awaits asyncio.sleep then calls pure local availability; no IO,
+  booking or mutation. Sequential and create_task/gather versions use identical
+  inputs and return complete results in input order. Observed durations are printed
+  without a required speedup. [M7 details](docs/m7-async.md).
+- **Protected resource:** two Threads compete for one local slot through the same
+  coordinator and Lock. External reads precede locking; final local recheck plus
+  insertion are protected together. All concurrent writers must cooperate. Both
+  Threads start before join; tests require one approval without choosing a winner.
+  Without the Lock, two free checks could precede either write; an unprotected run
+  need not fail every time. The guarantee is local, not a Google transaction.
+  [M8 details](docs/m8-threading.md).
+- **Windows testing:** module-scoped asyncio.Runner fixtures initialize the internal
+  event-loop socket pair before the function-scoped network guard. The combined
+  demo accepts the runner at its composition boundary; the guard stays active
+  during collectors, booking and the full test. It is not disabled globally.
 
-The M5 public service contracts are:
+### 5. Verification evidence and submission status
 
-| Method | Result and side effects |
-|---|---|
-| `fetch_snapshot(patient, doctor, window_start, window_end)` | Complete snapshot; performs one client call using bounds padded by 15 minutes on each side |
-| `available_slots(patient, doctor, window_start, window_end, duration_minutes=30)` | Sorted `(start, end)` list after a complete read; no clinic mutation |
-| `available_slots_using_snapshot(patient, doctor, window_start, window_end, snapshot, duration_minutes=30)` | Same list with no IO or mutation, using current local appointments |
-| `suggest_slot(patient, doctor, window_start, window_end, preferred_start, duration_minutes=30)` | Injected strategy's valid slot, or None for a valid empty result; reads but does not book |
-| `book(appointment_id, patient, doctor, start, duration_minutes=30)` | Registered Appointment; fetches before delegating to local recheck/registration |
-| `book_using_snapshot(appointment_id, patient, doctor, start, snapshot, duration_minutes=30)` | Registered Appointment with no IO; rechecks membership, IDs, availability and final manager invariants |
-| `add_waiting_request(request)` | The enqueued WaitingRequest; no IO |
-| `waiting_requests(doctor_id)` | Read-only FIFO tuple; empty/unknown queue gives an empty tuple |
-| `cancel(appointment_id)` | Dictionary with `cancelled_appointment`, `replacement` (Appointment or None) and `backfill_status` |
+On 2026-11-02 the integrated suite passed **478 cases and 63 subtests**, including
+all 476 merged cases plus two focused integration/isolation checks. The separate
+lecturer suite passed 19 tests. Combined main.py, explicit M7/M8 demos, pip check
+and git diff --check passed. Actual execution: **macOS 26.6.2 arm64, CPython 3.14.0,
+pytest 9.2.0**. Python 3.11 AST parsing is a syntax check, not execution on 3.11.
+Yotam's Windows 11 / Python 3.14 and Tufik's Python 3.13 results are their historical
+milestone records; this M9 run does not claim new Windows execution.
 
-`backfill_status` is `filled`, `unfilled` (valid cancellation with no eligible
-replacement), or `deferred` (cancellation succeeded but external availability is
-unknown). Invalid business input, membership, duplicate IDs or unavailable
-explicit slots raise ValueError; wrong model/contract types raise TypeError.
-AvailabilityUnknownError means a read or snapshot is unusable, with no booking
-and no switch to another source. Snapshots are validated/copied through the
-existing CalendarSnapshot constructor and must cover the requested interval plus
-its gaps. A source flag is preserved, not relabelled.
+Offline outcomes: external busy time reduces 11 candidates to 6; earliest and
+closest choose 09:00 and 11:00 for preference 11:00; local booking/FIFO/backfill
+and controlled deferred failure preserve history and queues. M7 returns D001/D002/
+D003 in input order with 6/11/0 slots; D003 is all-day busy, not an empty calendar.
+M8 creates one new appointment from two competing requests. Timings are observed,
+not asserted. [M9 evidence](docs/m9-verification.md) records commands/status and
+[the three-person checklist](docs/submission-checklist.md) identifies remaining gates.
 
-For Yotam, the prepared pure entry point is available_slots_using_snapshot with
-preloaded per-doctor snapshots and registered participants; its output is the M2
-slot list. For Tufik, fetch_snapshot belongs before a future shared Lock and
-book_using_snapshot belongs inside the protected check-and-insert section, on
-the same manager/service. All concurrent writers will need that later common
-coordinator. The M5 service itself is not synchronized; methods such as book and
-cancel are orchestration paths that may read externally. No Lock, coordinator,
-Threads or asyncio implementation is included, and a snapshot is not an atomic
-transaction against Google Calendar. M6 documents these contracts and prepares
-inputs; it does not implement teammates' milestones.
+The following business expectations retain their original attribution (working
+hours 09:00–12:00, external busy 10:00–10:30, free patient, no other local appointments):
 
-### Proposed teammate handoffs and remaining work
-
-Ownership is Shon's proposed division, pending coordination; no teammate
-agreement or contribution is asserted here.
-
-- [Yotam / M7](docs/handoff-m7-yotam.md): three registered doctors, preloaded
-  simulated snapshots, explicit hours and `available_slots_using_snapshot`.
-  Sequential and asyncio runs must use identical inputs and return results in
-  input order, without IO/booking/mutation inside coroutines.
-- [Tufik / M8](docs/handoff-m8-tufik.md): shared manager/service and the
-  `fetch_snapshot` / `book_using_snapshot` boundary. One shared coordinator and
-  Lock must cover final local recheck plus insertion; all concurrent writers use
-  it. Two competing Threads must yield one approval without prescribing a winner.
-- M9: integrate the teammates' implemented modules, compare demo timings, verify
-  locked booking results, run final tests and retain genuine TDD/provider evidence.
-
-`prepare_demo_inputs()` preloads D001/D002/D003 snapshots synchronously before
-any future concurrent work. The fixed 09:00-12:00 window yields 6/11/0 available
-slots respectively, with no appointments that day in the original dataset.
-No asyncio, threading module or coordinator solution is supplied by M6.
-
-### Verification evidence
-
-At M1 review on 2026-10-29, Python 3.14.0 with pytest 9.2.0 passed 115 collected test cases
-(19 preserved unittest cases plus 96 new pytest cases), with 63 unittest
-subtests also passing. The separate unittest run passed all 19 cases; the
-existing demo completed all 15 sections, and `git diff --check` passed.
-Python 3.11 syntax compatibility was checked separately; execution was on 3.14.0.
-
-The expected-result change in the existing transition matrix is explicit:
-`no_show` now rejects transitions to `scheduled` and `in_progress`. The old
-terminal cases retain their expectations. Related direct-assignment, inactive
-membership and context-manager cases also include `no_show`.
-
-At M2 verification on the same date and runtime, all 242 cases passed: the same
-115 M1 cases plus 127 new M2 cases, with 63 unittest subtests also passing.
-The separate 19-case unittest suite, all 15 original demo sections and
-`git diff --check` passed. All 18 Python files passed Python 3.11 syntax parsing;
-execution was on 3.14.0, not a separate 3.11 interpreter. Tests use synthetic
-fixtures and tmp_path, without network, API keys or new runtime dependencies.
-
-For working hours 09:00-12:00 and external busy time 10:00-10:30, with a free
-patient and no local appointments:
-
-| Request | Expected result | Expectation supplied by |
+| Request | Expected | Supplied by |
 |---|---|---|
-| 09:30-10:00 | Rejected: insufficient gap | Shon |
-| 10:00-10:30 | Rejected: overlap | Shon |
-| 09:15-09:45 | Available | Architecture/planning agent |
-| 10:45-11:15 | Available | Architecture/planning agent |
+| 09:30–10:00 | Reject: insufficient gap | Shon |
+| 10:00–10:30 | Reject: overlap | Shon |
+| 09:15–09:45 | Allow when other constraints permit | Architecture/planning agent |
+| 10:45–11:15 | Allow when other constraints permit | Architecture/planning agent |
 
-Tests also cover events just outside the search window, working-hour boundaries,
-local doctor/patient conflicts, invalid/aware windows, insufficient snapshots,
-malformed files/events, empty calendars, all-day exclusive ends and different
-timezone offsets. These are local/simulated M2 results.
+**Real Google evidence: pending.** The local .env is absent and the API key is
+missing. The explicit command exits safely in configuration before HTTP; no live
+response, event or decision is invented. Configure the dedicated synthetic calendar
+locally using the guide, then record source=live, the known busy interval and its
+blocked/available decision. Offline/mock output and Git publication do not satisfy
+that requirement. M9 remains incomplete until this evidence and final review pass.
 
-At M3 verification on 2026-10-30, Python 3.14.0 with pytest 9.2.0 passed all 261
-cases (242 existing plus 19 strategy cases), with 63 unittest subtests. The
-separate 19-case unittest suite, the 15 original demo sections and
-`git diff --check` passed. All 20 Python files passed Python 3.11 syntax parsing;
-runtime execution was on 3.14.0. No test requires network or an API key.
+ClosestToRequestedStrategy has a genuine Git Red/Green/Refactor sequence:
 
-ClosestToRequestedStrategy was developed through genuine Red/Green/Refactor:
-
-| Stage | Local commit | Evidence |
+| Stage | Commit | Recorded result |
 |---|---|---|
-| Reviewed M1-M2 baseline | `4788a6d362dd6eb307476a94e7eaef3cf5606b6e` | 242 cases passed before strategy work |
-| Red | `6d2e55af73126fcd2bca25b3112eec685ce80e9d` | 11 failed, 8 passed in the strategy suite; failure was NotImplementedError in select |
-| Green | `97dde5106213a1aa090bc0610416435e465e8498` | Closest selection implemented; all 261 cases passed |
-| Refactor | `ab5ebde75af843c3651800d3e2bc64dcaf4f9709` | Manual best-slot/key tracking replaced by min with the same ranking tuple; all 261 cases stayed green |
+| Red | [6d2e55a](https://github.com/ZebrikDev/Smart-Clinic/commit/6d2e55af73126fcd2bca25b3112eec685ce80e9d) | 11 failures from missing behavior, 8 passes |
+| Green | [97dde51](https://github.com/ZebrikDev/Smart-Clinic/commit/97dde5106213a1aa090bc0610416435e465e8498) | 261 cases passed |
+| Refactor | [ab5ebde](https://github.com/ZebrikDev/Smart-Clinic/commit/ab5ebde75af843c3651800d3e2bc64dcaf4f9709) | min with ranking key; 261 cases stayed green |
 
-The exact original Red output is preserved in [docs/tdd/m3-red.txt](docs/tdd/m3-red.txt).
-The same strategy tests and expected results were retained through Green and
-Refactor. The commits were initially local at the M3 checkpoint and were later
-published with M4. On 2026-10-30, Shon authorized correcting their Git identities
-to ZebrikDev. The table above uses the corrected hashes; the
-[identity-correction record](docs/git-author-correction.md) maps all seven original
-Stage 2 hashes to their replacements. Every rewritten commit retains its exact
-file tree, message and timestamps, including the genuine TDD sequence. Original
-hashes in historical AI_USAGE entries describe the identifiers at those earlier
-checkpoints. Real API and concurrency evidence remain pending their respective
-milestones.
+[Saved Red output](docs/tdd/m3-red.txt) is unchanged. The
+[identity correction map](docs/git-author-correction.md) explains historical hashes;
+all original TDD states and contributor commits remain reachable.
 
-At M4 verification on 2026-10-30, all 349 cases passed (261 preserved cases plus
-88 new M4 cases), with 63 unittest subtests. HTTP and Retry waits were replaced
-where used, while the client/normalizer remained real. A test-wide socket guard
-prevents network access. The separate 19-case unittest suite, original 15-section
-demo, dependency check and git diff --check passed. Execution used Python 3.14.0;
-all 26 Python files also passed Python 3.11 syntax parsing.
-
-Real-provider verification is **pending**: the worktree has no .env and the
-process has no API key/calendar mapping. The explicit command stopped in
-configuration before HTTP. Mocked successes (including their live source flag)
-exercise the Google product contract only and are not evidence of a real Google
-connection. No account settings, API enablement, credentials or calendars changed.
-
-At M5 verification on 2026-10-30, all 434 cases passed (349 existing plus 85 new),
-with 63 unittest subtests. The separate 19-case lecturer suite, original 15-section
-demo and git diff --check passed. Runtime execution used Python 3.14.0 with pytest
-9.2.0; all 29 Python files passed Python 3.11 syntax parsing, without claiming
-execution on a separate 3.11 interpreter. No new dependencies were required.
-
-M5 tests exercise both strategies through the service, external blocking, exact
-registration/IDs, current-state rechecks after snapshots, doctor/patient gaps at
-14/15/16 minutes in both directions, explicit working-hour/grid enforcement,
-FIFO skip order, replacement duration/window limits, distinct IDs, and failure
-without booking. A real JSON-client flow uses the unchanged synthetic source
-files; another reads malformed JSON from tmp_path and verifies deferred backfill.
-These are offline/mocked results. Real Google verification remains pending
-configuration; the milestone commit/push does not establish live connectivity.
-
-At M6 verification on 2026-10-30, all 438 cases passed (434 preserved plus four
-focused demo checks), with 63 unittest subtests. The separate 19-case lecturer
-suite, combined 15-section Stage 1 plus Stage 2 demo, dependency check and
-git diff --check passed. Runtime was Python 3.14.0 with pytest 9.2.0; all 32
-Python files passed Python 3.11 syntax parsing, not execution on Python 3.11.
-
-The default-demo check removes live credential/configuration variables, rejects
-any HTTP attempt and any .env load, then executes the combined main function.
-It verifies simulated labelling and unchanged input files. Other focused checks
-inspect actual booking/cancellation/FIFO state, deferred backfill after the
-explicit injected failure and the three-doctor 6/11/0 prepared results. The
-reviewed M5 service and all earlier regression tests remain unchanged. No live
-request or account configuration change was made; M7, M8 and M9 are incomplete.
+A review ZIP is built from an exact committed integration tree, excluding .env,
+environments, caches, untracked files and backups. Its source SHA, checksum and
+fresh-extraction installation/test results are recorded in the external review
+package. The final PR remains unmerged; after Technical Lead approval of the exact
+commit, merge to main and verification of the actual GitHub main download are a
+separate release step.

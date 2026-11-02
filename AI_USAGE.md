@@ -308,3 +308,76 @@ Tool: Codex, used by Shon as an implementation assistant on 2026-10-30.
   Python 3.11 execution is claimed. The default-demo test removes live settings
   and blocks HTTP/.env loading, checks simulated labels and unchanged source
   files. Real Google verification and M7/M8/M9 remain pending.
+
+## 11. M7: Yotam's contributor-supplied record
+
+Transferred faithfully from docs/m7-async.md at reviewed commit `87d61d4fe9a53a7abd27521db965615a575271d2` during M9. The text below records that contributor's historical checkpoint; Shon's M9 instruction subsequently reports Technical Lead approval. Tool/model attribution is the contributor's supplied record.
+
+
+- Tool: Claude Code (Anthropic, model Claude Opus 5.5), used by Yotam on 2026-11-02.
+- Yotam supplied the M7 task prompt (scope, function names, test and delivery
+  requirements). The assistant read `docs/handoff-m7-yotam.md`, the README Stage 2
+  sections, `services.py`, `demo_data.py`, `demo_stage2.py` and existing tests.
+- The assistant made a fresh clone under Yotam's Git identity, created the branch,
+  wrote `async_processing.py`, `demo_async.py`, the M7 tests and this document,
+  diagnosed both Windows findings, ran the deliberate-fault checks and all
+  verification commands above, then committed and pushed this branch for a pull
+  request to `stage-2-development` (left unmerged).
+- Design choices made with AI assistance: delays as a dict keyed by doctor ID
+  (matching `snapshots`), `gather(..., return_exceptions=True)` followed by raising
+  the first input-order error, and the module-scoped event-loop fixture.
+- Review follow-up: Yotam relayed the Technical Lead's three corrections. The
+  assistant implemented the non-finite delay check, the regression tests and the
+  demo wording, ran the new tests against the reviewed code to confirm they catch
+  the defect, updated this document and created a normal follow-up commit.
+- Pending: Technical Lead review of the follow-up. No teammate agreement is claimed.
+
+## 12. M8: Tufik's contributor-supplied record
+
+Transferred faithfully from docs/m8-threading.md at reviewed commit `380f003b513088aadc3096a8235dc8238ca91eb4` during M9. The text below records that contributor's historical checkpoint; Shon's M9 instruction subsequently reports Technical Lead approval. Tool/model attribution is the contributor's supplied record.
+
+
+Claude (Anthropic) was used to read the M8 handoff and `AppointmentService`,
+draft the coordinator, demo, tests and this document, and run the checks above.
+Tufik reviewed the code and is responsible for understanding and presenting it.
+
+## 13. Stage 2: M9 integration and submission preparation
+
+Tool: Codex, used by Shon on 2026-11-02 after reported Technical Lead review of
+M7 (including corrections) and M8. This entry records work in this run; it does
+not replace the contributors' supplied records above or rewrite Stage 1 history.
+
+- Shon authorized normal M7/M8 merge commits, focused integration/docs commits,
+  normal pushes to stage-2-development, an unmerged final PR and read-only live
+  verification with existing synthetic-calendar configuration. Main release,
+  history rewriting and resource/calendar creation were not authorized.
+- Codex read the cached assignment, architecture, existing documentation,
+  handoffs and contributor modules/tests. Remote refs matched the supplied
+  reviewed SHAs. A recoverable branch/bundle and copies/hashes of unrelated
+  untracked handoff files were created before conflict-free normal merges.
+  Contributor commit attribution and TDD states were preserved.
+- Codex composed the existing M7/M8 entry points in main.py with fresh clinics;
+  the two-thread experiment still uses the single shared coordinator. It did
+  not duplicate either algorithm or alter the reviewed business rules. Existing
+  Stage 1 sections, datasets and service contracts were retained.
+- The Windows tzdata marker and explicit package metadata make the documented
+  .[test] installation include platform requirements. Combined-demo tests reuse
+  M7's initialized Runner approach before the per-test guard; isolation remains
+  active, and a direct outbound attempt is rejected. Two focused checks were
+  added and the existing combined-main check extended without weakening results.
+- README was reorganized into the assignment's five Stage 2 parts; Stage 1 text
+  remains verbatim. The M7/M8 assistance sections were moved faithfully above,
+  preserving supplied contributor/tool/model attribution and historical pending
+  statements. Milestone documents keep technical explanations and central links.
+- Verification: 476 merged baseline cases; 478 integrated cases and 63 subtests
+  passed, plus 19 lecturer tests separately, combined and explicit demos,
+  dependency consistency and diff checks. Actual runtime was macOS 26.6.2 arm64,
+  Python 3.14.0, pytest 9.2.0. All 37 Python files passed 3.11 syntax parsing;
+  no new Windows or Python 3.11 execution is claimed. A committed-tree ZIP trial
+  installed in a fresh isolated environment and passed all tests/main/pip check;
+  the final review package records its exact committed source and fresh checks.
+- Real Google verification is still pending: the actual explicit command exited
+  1 at missing GOOGLE_CALENDAR_API_KEY, before HTTP. .env and mapping are absent.
+  Shon was asked to configure locally and confirm a known synthetic event/window;
+  no secret, calendar ID or provider response was invented. No resources or public
+  visibility were changed. M9 is not claimed complete or submission-ready.
