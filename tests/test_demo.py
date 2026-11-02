@@ -1,7 +1,10 @@
+import asyncio
+import socket
 from datetime import timedelta
 from unittest.mock import Mock
 
 import main
+import pytest
 
 from smart_clinic.api_client import JsonCalendarClient
 from smart_clinic.config import PROJECT_ROOT
@@ -9,7 +12,19 @@ from smart_clinic.demo_data import WINDOW_END, WINDOW_START, prepare_demo_inputs
 from smart_clinic.demo_stage2 import DemonstrationFailureClient, run_stage2_demo
 
 
-def test_default_main_preserves_stage1_and_runs_offline_without_credentials(monkeypatch, capsys):
+@pytest.fixture(scope="module")
+def run():
+    """Create Windows' internal event-loop socket pair before the per-test guard.
+
+    Network isolation stays active throughout each combined demonstration, as
+    in Yotam's reviewed M7 tests. Only the runner is injected, not the collectors.
+    """
+    with asyncio.Runner() as runner:
+        runner.get_loop()
+        yield runner.run
+
+
+def test_default_main_preserves_stage1_and_runs_offline_without_credentials(monkeypatch, capsys, run):
     for key in ("GOOGLE_CALENDAR_API_KEY", "GOOGLE_CALENDAR_MAPPING", "REQUEST_TIMEOUT"):
         monkeypatch.delenv(key, raising=False)
     http = Mock(side_effect=AssertionError("Default demo must not attempt HTTP."))
@@ -18,7 +33,7 @@ def test_default_main_preserves_stage1_and_runs_offline_without_credentials(monk
     monkeypatch.setattr("smart_clinic.config.load_dotenv", dotenv)
     paths = [PROJECT_ROOT / "data/sample_data.jsonl", PROJECT_ROOT / "data/calendar_responses.json"]
     before = [path.read_bytes() for path in paths]
-    main.main()
+    result = main.main(run=run)
     output = capsys.readouterr().out
     for section in range(1, 16):
         assert f"=== {section}. " in output
@@ -30,9 +45,41 @@ def test_default_main_preserves_stage1_and_runs_offline_without_credentials(monk
     assert "Explicit 09:30-10:00 rejected, as expected" in output
     assert "injected DemonstrationFailureClient (test client, no HTTP)" in output
     assert "backfill=deferred" in output
+    collected = result["availability"]
+    assert collected["sequential"] == collected["concurrent"]
+    assert [(identifier, len(slots)) for identifier, slots in collected["concurrent"]] == [
+        ("D001", 6), ("D002", 11), ("D003", 0),
+    ]
+    assert sorted(kind for kind, value in result["bookings"]) == ["booked", "rejected"]
+    assert "Appointments before: 7, after: 8" in output
+    assert "Scheduled at D002 09:00-09:30: 1" in output
+    assert "Same complete results, in input order: True" in output
+    assert "Sequential:" in output and "Concurrent:" in output
     assert [path.read_bytes() for path in paths] == before
     http.assert_not_called()
     dotenv.assert_not_called()
+
+
+def test_combined_demonstrations_use_independent_fresh_clinics(monkeypatch, capsys, run):
+    clinics = []
+
+    def record_inputs():
+        prepared = prepare_demo_inputs()
+        clinics.append(prepared[0].manager)
+        return prepared
+
+    for module in ("demo_stage2", "demo_async", "threaded_processing"):
+        monkeypatch.setattr(f"smart_clinic.{module}.prepare_demo_inputs", record_inputs)
+    main.main(run=run)
+    assert len(clinics) == 4  # Business, controlled failure, M7, M8.
+    assert len({id(clinic) for clinic in clinics}) == 4
+    assert [len(clinic.appointments) for clinic in clinics] == [11, 8, 7, 8]
+
+
+def test_network_guard_still_blocks_outbound_connections():
+    with socket.socket() as connection:
+        with pytest.raises(AssertionError, match="must not access the network"):
+            connection.connect(("192.0.2.1", 443))
 
 
 def test_demo_books_locally_and_preserves_fifo_history(capsys):

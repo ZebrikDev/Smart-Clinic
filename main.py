@@ -1,9 +1,11 @@
+import asyncio
 from collections import deque
 from datetime import datetime
 from pathlib import Path
 
 from smart_clinic import processing
 from smart_clinic.context_managers import AppointmentProcessing
+from smart_clinic.demo_async import run_m7_demo
 from smart_clinic.demo_stage2 import run_stage2_demo
 from smart_clinic.iterators import (
     AppointmentCollection,
@@ -12,6 +14,7 @@ from smart_clinic.iterators import (
 )
 from smart_clinic.models import Appointment, Patient, Visit
 from smart_clinic.repository import load_clinic_data
+from smart_clinic.threaded_processing import demonstrate_booking_race
 
 DATA_FILE = Path(__file__).parent / "data" / "sample_data.jsonl"
 
@@ -247,7 +250,7 @@ def show_context_manager_failure(manager):
     print(f"After:  {appointment.status}")
 
 
-def main():
+def main(run=asyncio.run):
     manager = show_loading()
     show_dict_conversion(manager)
     show_polymorphism(manager)
@@ -266,6 +269,13 @@ def main():
     show_context_manager_success(manager)
     show_context_manager_failure(manager)
     run_stage2_demo()
+    collected = run_m7_demo(run=run)
+    if collected["sequential"] != collected["concurrent"]:
+        raise RuntimeError("Sequential and concurrent availability must match.")
+    competing = demonstrate_booking_race()
+    print("\nOffline integration verified (simulated calendars and delays). "
+          "Real Google evidence is recorded separately; see docs/m9-verification.md.")
+    return {"availability": collected, "bookings": competing}
 
 
 if __name__ == "__main__":

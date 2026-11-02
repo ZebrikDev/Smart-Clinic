@@ -79,7 +79,8 @@ def demonstrate_booking_race():
     ]
     outcomes = run_competing_bookings(coordinator, requests, snapshot)
 
-    print("\nM8: two Threads book D002 at 09:00 through one BookingCoordinator")
+    print("\nM8: two Threads book D002 at 09:00 through one BookingCoordinator "
+          "(simulated calendar, local bookings)")
     for (appointment_id, patient, *_), (kind, value) in zip(requests, outcomes):
         detail = value.appointment_id if kind == "booked" else value
         print(f"{appointment_id} ({patient.id}): {kind} -> {detail}")

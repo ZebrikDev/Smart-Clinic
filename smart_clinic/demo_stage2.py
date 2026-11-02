@@ -112,5 +112,5 @@ def run_stage2_demo():
     show_availability(service, patient, doctors, snapshots)
     successful = show_booking_and_backfill(service, patient, doctors)
     deferred = show_deferred_backfill()
-    print("\nM1-M6 demonstration complete; real Google verification, M7/M8 concurrency and M9 remain pending.")
+    print("\nLocal scheduling demonstration complete (simulated); main.py also runs the M7/M8 demonstrations.")
     return {"successful": successful, "deferred": deferred}

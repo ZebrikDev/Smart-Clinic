@@ -1,6 +1,6 @@
 """Explicitly invoked M7 demonstration: python -m smart_clinic.demo_async
 
-Not part of main.py yet; final integration belongs to M9. Timing is measured
+Also called by main.py after M9 integration. Timing is measured
 here, outside the collection functions, around one complete run of each version.
 """
 
